@@ -1345,6 +1345,7 @@
       "Microsoft.AspNetCore.Identity.EntityFrameworkCore >= 10.0.5",
       "Microsoft.EntityFrameworkCore >= 10.0.5",
       "Microsoft.EntityFrameworkCore.SqlServer >= 10.0.5",
+      "Pomelo.EntityFrameworkCore.MySql >= 10.0.0",
       "System.IdentityModel.Tokens.Jwt >= 8.16.0"
     ]
   },
@@ -1414,6 +1415,10 @@
           "Microsoft.EntityFrameworkCore.SqlServer": {
             "target": "Package",
             "version": "[10.0.5, )"
+          },
+          "Pomelo.EntityFrameworkCore.MySql": {
+            "target": "Package",
+            "version": "[10.0.0, )"
           },
           "System.IdentityModel.Tokens.Jwt": {
             "target": "Package",
@@ -1856,5 +1861,16 @@
         }
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1102",
+      "level": "Error",
+      "message": "Unable to find package Pomelo.EntityFrameworkCore.MySql with version (>= 10.0.0)\r\n  - Found 172 version(s) in nuget.org [ Nearest version: 9.0.0 ]",
+      "libraryId": "Pomelo.EntityFrameworkCore.MySql",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
 }

@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "dgSpecHash": "BfkONQznHXI=",
-  "success": true,
+  "dgSpecHash": "9QTm41QAG/g=",
+  "success": false,
   "projectFilePath": "D:\\Coding_Project\\C#\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\ACER\\.nuget\\packages\\azure.core\\1.50.0\\azure.core.1.50.0.nupkg.sha512",
@@ -37,5 +37,17 @@
     "C:\\Users\\ACER\\.nuget\\packages\\system.security.cryptography.pkcs\\9.0.4\\system.security.cryptography.pkcs.9.0.4.nupkg.sha512",
     "C:\\Users\\ACER\\.nuget\\packages\\system.security.cryptography.protecteddata\\9.0.4\\system.security.cryptography.protecteddata.9.0.4.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1102",
+      "level": "Error",
+      "message": "Unable to find package Pomelo.EntityFrameworkCore.MySql with version (>= 10.0.0)\r\n  - Found 172 version(s) in nuget.org [ Nearest version: 9.0.0 ]",
+      "projectPath": "D:\\Coding_Project\\C#\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj",
+      "filePath": "D:\\Coding_Project\\C#\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj",
+      "libraryId": "Pomelo.EntityFrameworkCore.MySql",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
 }
