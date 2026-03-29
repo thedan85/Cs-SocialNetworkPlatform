@@ -1,0 +1,26 @@
+# Build outputs
+bin/
+obj/
+**/bin/
+**/obj/
+
+# Visual Studio / Rider / user-specific files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# Logs and caches
+*.log
+*.cache
+*.pidb
+*.pdb
+*.dll
+TestResults/
+coverage/
+
+# EF Core / NuGet restore artifacts
+project.lock.json
+artifacts/
