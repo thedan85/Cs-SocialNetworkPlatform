@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 using SocialNetwork.Model;
 
 namespace SocialNetwork.Data;
@@ -26,9 +27,6 @@ public class ApplicationDbContext : IdentityDbContext<User>
         modelBuilder.Entity<User>(entity =>
         {
             entity.ToTable("User");
-
-            entity.Property(e => e.PhoneNumber)
-                .HasMaxLength(20);
             
             entity.Property(e => e.ProfilePicture)
                 .HasMaxLength(500);
@@ -265,4 +263,22 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .HasForeignKey(e => e.StoryId)
                 .OnDelete(DeleteBehavior.Cascade);
         });    }
+}
+
+public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
+{
+    public ApplicationDbContext CreateDbContext(string[] args)
+    {
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json")
+            .AddJsonFile("appsettings.Development.json", optional: true)
+            .Build();
+
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+
+        return new ApplicationDbContext(optionsBuilder.Options);
+    }
 }
