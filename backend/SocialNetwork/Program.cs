@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using SocialNetwork.Data;
 using SocialNetwork.Model;
 using Microsoft.EntityFrameworkCore;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using SocialNetwork.Model;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
 namespace SocialNetwork.Data;
 
