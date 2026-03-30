@@ -19,6 +19,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Story> Stories { get; set; }
     public DbSet<Like> Likes { get; set; }
+    public DbSet<UserFriendship> UserFriendships { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -216,6 +217,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
         // Configure Like entity
         modelBuilder.Entity<Like>(entity =>
         {
@@ -263,7 +265,80 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .WithMany()
                 .HasForeignKey(e => e.StoryId)
                 .OnDelete(DeleteBehavior.Cascade);
-        });    }
+        }); 
+
+        // Configure Friendship entity
+        modelBuilder.Entity<Friendship>(entity =>
+        {
+            entity.ToTable("Friendship");
+
+            entity.HasKey(e => e.FriendshipId);
+
+            entity.Property(e => e.FriendshipId)
+                .HasMaxLength(36)
+                .IsRequired();
+
+            entity.Property(e => e.UserId1)
+                .HasMaxLength(128)
+                .IsRequired();
+
+            entity.Property(e => e.UserId2)
+                .HasMaxLength(128)
+                .IsRequired();
+
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("Pending");
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            // Foreign key relationships
+            entity.HasOne(e => e.User1)
+                .WithMany()
+                .HasForeignKey(e => e.UserId1)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User2)
+                .WithMany()
+                .HasForeignKey(e => e.UserId2)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure UserFriendship entity
+        modelBuilder.Entity<UserFriendship>(entity =>
+        {
+            entity.ToTable("UserFriendship");
+
+            // Composite primary key
+            entity.HasKey(e => new { e.FriendshipId, e.UserId });
+
+            entity.Property(e => e.FriendshipId)
+                .HasMaxLength(36)
+                .IsRequired();
+
+            entity.Property(e => e.UserId)
+                .HasMaxLength(128)
+                .IsRequired();
+
+            entity.Property(e => e.AcceptedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // Foreign key relationships
+            entity.HasOne(e => e.Friendship)
+                .WithMany()
+                .HasForeignKey(e => e.FriendshipId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+    }
 }
 
 public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
