@@ -14,5 +14,5 @@ public class Notification
 
     public DateTime CreatedAt {get; set;} = DateTime.UtcNow;
 
-    public Boolean Isread {get; set;} = false;
+    public Boolean IsRead {get; set;} = false;
 }

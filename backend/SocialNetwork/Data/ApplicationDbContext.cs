@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using SocialNetwork.Model;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+using System.Net.Mail;
+using System.Reflection.Metadata;
 
 namespace SocialNetwork.Data;
 
@@ -337,6 +339,28 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure Notification entity
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.ToTable("Notification");
+
+            entity.HasKey(e => new {e.NotificationId, e.RecipientUserId, e.SenderUserId});
+
+            entity.Property(e => e.NotificationId)
+                .HasMaxLength(36)
+                .IsRequired();
+
+            entity.Property(e => e.RecipientUserId)
+                .HasMaxLength(36)
+                .IsRequired();
+
+            entity.Property(e => e.SenderUserId)
+                .HasMaxLength(36)
+                .IsRequired();
+
+            
         });
     }
 }
