@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Coding_Project\\C#\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj": {}
+    "D:\\SCHOOL\\Csharp\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj": {}
   },
   "projects": {
-    "D:\\Coding_Project\\C#\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj": {
+    "D:\\SCHOOL\\Csharp\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Coding_Project\\C#\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj",
+        "projectUniqueName": "D:\\SCHOOL\\Csharp\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj",
         "projectName": "SocialNetwork",
-        "projectPath": "D:\\Coding_Project\\C#\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj",
-        "packagesPath": "C:\\Users\\ACER\\.nuget\\packages\\",
-        "outputPath": "D:\\Coding_Project\\C#\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\obj\\",
+        "projectPath": "D:\\SCHOOL\\Csharp\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj",
+        "packagesPath": "C:\\Users\\gameh\\.nuget\\packages\\",
+        "outputPath": "D:\\SCHOOL\\Csharp\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\ACER\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\gameh\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -57,6 +57,10 @@
               "version": "[10.0.5, )"
             },
             "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[10.0.5, )"
+            },
+            "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[10.0.5, )"
             },
