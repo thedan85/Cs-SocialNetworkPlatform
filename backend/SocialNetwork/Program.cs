@@ -11,8 +11,12 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 // 2. Register the DbContext using that string
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0))));
 
 // 3. Add Identity (as we discussed before)
 builder.Services.AddIdentity<User, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
+
+var app = builder.Build();
+
+app.Run();

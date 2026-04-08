@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
 using SocialNetwork.Model;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
-using System.Net.Mail;
-using System.Reflection.Metadata;
 
 namespace SocialNetwork.Data;
 
@@ -21,11 +20,15 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Story> Stories { get; set; }
     public DbSet<Like> Likes { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
+    public DbSet<Friendship> Friendships { get; set; }
     public DbSet<UserFriendship> UserFriendships { get; set; }
+    public DbSet<PostReport> PostReports { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
 
         // Configure User entity
         modelBuilder.Entity<User>(entity =>
@@ -39,10 +42,10 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .HasMaxLength(1000);
             
             entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
             
             entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)");
             
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true);
@@ -74,14 +77,14 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .HasDefaultValue(0);
 
             entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
             entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)");
 
             // Foreign key relationship
             entity.HasOne(e => e.User)
-                .WithMany()
+                .WithMany(u => u.Posts)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -108,7 +111,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .HasDefaultValue(0);
 
             entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
         });
 
         // Configure PostHashtag entity
@@ -128,7 +131,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .IsRequired();
 
             entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
             // Foreign key relationships
             entity.HasOne(e => e.Post)
@@ -169,10 +172,10 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .HasDefaultValue(0);
 
             entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
             entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)");
 
             // Foreign key relationships
             entity.HasOne(e => e.Post)
@@ -181,7 +184,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.User)
-                .WithMany()
+                .WithMany(u => u.Comments)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -208,14 +211,14 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .HasMaxLength(500);
 
             entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
             entity.Property(e => e.ExpiresAt)
                 .IsRequired();
 
             // Foreign key relationship
             entity.HasOne(e => e.User)
-                .WithMany()
+                .WithMany(u => u.Stories)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -223,7 +226,12 @@ public class ApplicationDbContext : IdentityDbContext<User>
         // Configure Like entity
         modelBuilder.Entity<Like>(entity =>
         {
-            entity.ToTable("Like");
+            entity.ToTable("Like", table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_Like_ExactlyOneTarget",
+                    "(CASE WHEN PostId IS NOT NULL THEN 1 ELSE 0 END + CASE WHEN CommentId IS NOT NULL THEN 1 ELSE 0 END + CASE WHEN StoryId IS NOT NULL THEN 1 ELSE 0 END) = 1");
+            });
 
             entity.HasKey(e => e.LikeId);
 
@@ -245,11 +253,11 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .HasMaxLength(36);
 
             entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
             // Foreign key relationships
             entity.HasOne(e => e.User)
-                .WithMany()
+                .WithMany(u => u.Likes)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -272,7 +280,12 @@ public class ApplicationDbContext : IdentityDbContext<User>
         // Configure Friendship entity
         modelBuilder.Entity<Friendship>(entity =>
         {
-            entity.ToTable("Friendship");
+            entity.ToTable("Friendship", table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_Friendship_DifferentUsers",
+                    "UserId1 <> UserId2");
+            });
 
             entity.HasKey(e => e.FriendshipId);
 
@@ -293,19 +306,19 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .HasDefaultValue("Pending");
 
             entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
             entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)");
 
             // Foreign key relationships
             entity.HasOne(e => e.User1)
-                .WithMany()
+                .WithMany(u => u.FriendshipsAsUser1)
                 .HasForeignKey(e => e.UserId1)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.User2)
-                .WithMany()
+                .WithMany(u => u.FriendshipsAsUser2)
                 .HasForeignKey(e => e.UserId2)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -327,16 +340,16 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .IsRequired();
 
             entity.Property(e => e.AcceptedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
             // Foreign key relationships
             entity.HasOne(e => e.Friendship)
-                .WithMany()
+                .WithMany(f => f.UserFriendships)
                 .HasForeignKey(e => e.FriendshipId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.User)
-                .WithMany()
+                .WithMany(u => u.UserFriendships)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -346,22 +359,80 @@ public class ApplicationDbContext : IdentityDbContext<User>
         {
             entity.ToTable("Notification");
 
-            entity.HasKey(e => new {e.NotificationId, e.RecipientUserId, e.SenderUserId});
+            entity.HasKey(e=>e.NotificationId);
 
             entity.Property(e => e.NotificationId)
                 .HasMaxLength(36)
                 .IsRequired();
 
             entity.Property(e => e.RecipientUserId)
-                .HasMaxLength(36)
+                .HasMaxLength(128)
                 .IsRequired();
 
             entity.Property(e => e.SenderUserId)
+                .HasMaxLength(128)
+                .IsRequired();  
+
+            entity.Property(e => e.Type)
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Content)
+                .HasColumnType("TEXT");
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+            entity.Property(e => e.IsRead)
+                .HasDefaultValue(false);
+
+            // Foreign key relationships
+            entity.HasOne(e => e.RecipientUser)
+                .WithMany(u => u.ReceivedNotifications)
+                .HasForeignKey(e => e.RecipientUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.SenderUser)
+                .WithMany(u => u.SentNotifications)
+                .HasForeignKey(e => e.SenderUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PostReport>(entity =>
+        {
+            entity.ToTable("PostReport");
+
+            entity.HasKey(e => e.PostReportId);
+
+            entity.Property(e => e.PostReportId)
                 .HasMaxLength(36)
                 .IsRequired();
 
+            entity.Property(e => e.PostId)
+                .HasMaxLength(36)
+                .IsRequired();
+
+            entity.Property(e => e.ReporterUserId)
+                .HasMaxLength(128)
+                .IsRequired();
             
-        });
+            entity.Property(e => e.Reason)
+                .HasMaxLength(500);
+            
+            entity.Property(e => e.Description)
+                .HasMaxLength(500);
+            
+            // Foreign key relationships
+            entity.HasOne(e => e.Post)
+                .WithMany()
+                .HasForeignKey(e => e.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.ReporterUser)
+                .WithMany(u => u.PostReports)
+                .HasForeignKey(e => e.ReporterUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
+        );
     }
 }
 
@@ -376,8 +447,9 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
             .Build();
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");
-        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+
+        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+        optionsBuilder.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0)));
 
         return new ApplicationDbContext(optionsBuilder.Options);
     }

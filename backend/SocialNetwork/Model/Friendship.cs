@@ -18,4 +18,6 @@ public class Friendship
     public virtual User? User1 { get; set; }
     
     public virtual User? User2 { get; set; }
+
+    public ICollection<UserFriendship> UserFriendships { get; set; } = new List<UserFriendship>();
 }

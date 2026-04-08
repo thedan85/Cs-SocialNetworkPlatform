@@ -8,11 +8,14 @@ public class Notification
 
     public string SenderUserId {get; set;} = string.Empty;
 
-    public string Type {get; set;}
+    public string? Type {get; set;}
 
-    public string Content {get; set;}
+    public string? Content {get; set;}
 
     public DateTime CreatedAt {get; set;} = DateTime.UtcNow;
 
     public Boolean IsRead {get; set;} = false;
+
+    public virtual User? RecipientUser {get; set;}
+    public virtual User? SenderUser {get; set;}
 }

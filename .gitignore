@@ -24,3 +24,7 @@ coverage/
 # EF Core / NuGet restore artifacts
 project.lock.json
 artifacts/
+*.sln
+*.targets
+*.cache
+*.editorconfig

@@ -15,6 +15,9 @@ public class Post
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public ICollection<Comment>? Comments { get; set; }
+    public ICollection<Like>? Likes { get; set; }
     
     // Navigation property
     public virtual User? User { get; set; }
