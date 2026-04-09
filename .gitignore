@@ -39,3 +39,7 @@ backend/obj/
 
 # OS
 Thumbs.db
+
+#file obj
+[Bb]in/
+[Oo]bj/
