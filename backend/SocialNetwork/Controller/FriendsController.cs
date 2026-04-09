@@ -23,6 +23,7 @@ public class FriendsController : ApiControllerBase
     /// <code>
     /// POST /api/friends/requests
     /// {
+    ///   "requesterUserId": "user-123",
     ///   "addresseeUserId": "user-456"
     /// }
     /// </code>
@@ -36,7 +37,7 @@ public class FriendsController : ApiControllerBase
         var currentUserId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(currentUserId))
         {
-            return UnauthorizedResponse("User identity is missing.");
+            return UnauthorizedResponse("User context is missing.");
         }
 
         var result = await _friendsService.CreateFriendRequestAsync(currentUserId, request, HttpContext.RequestAborted);
@@ -50,7 +51,17 @@ public class FriendsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AcceptFriendRequest(string friendshipId)
     {
-        var result = await _friendsService.AcceptFriendRequestAsync(friendshipId, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _friendsService.AcceptFriendRequestAsync(
+            currentUserId,
+            friendshipId,
+            User.IsInRole("Admin"),
+            HttpContext.RequestAborted);
         return FromServiceResult(result);
     }
 
@@ -61,7 +72,17 @@ public class FriendsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RejectFriendRequest(string friendshipId)
     {
-        var result = await _friendsService.RejectFriendRequestAsync(friendshipId, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _friendsService.RejectFriendRequestAsync(
+            currentUserId,
+            friendshipId,
+            User.IsInRole("Admin"),
+            HttpContext.RequestAborted);
         return FromServiceResult(result);
     }
 
@@ -75,7 +96,7 @@ public class FriendsController : ApiControllerBase
     {
         if (!IsCurrentUserOrAdmin(userId))
         {
-            return UnauthorizedResponse("You are not allowed to access these friends.");
+            return UnauthorizedResponse("You are not allowed to access this user's friends.");
         }
 
         var result = await _friendsService.GetFriendsAsync(userId, pageNumber, pageSize, HttpContext.RequestAborted);
@@ -92,7 +113,7 @@ public class FriendsController : ApiControllerBase
     {
         if (!IsCurrentUserOrAdmin(userId))
         {
-            return UnauthorizedResponse("You are not allowed to access these requests.");
+            return UnauthorizedResponse("You are not allowed to access this user's pending requests.");
         }
 
         var result = await _friendsService.GetPendingRequestsAsync(userId, pageNumber, pageSize, HttpContext.RequestAborted);

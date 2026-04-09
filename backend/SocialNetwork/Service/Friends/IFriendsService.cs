@@ -8,8 +8,16 @@ public interface IFriendsService
         string requesterUserId,
         FriendRequestCreateRequest request,
         CancellationToken ct = default);
-    Task<ServiceResult<FriendshipResponse>> AcceptFriendRequestAsync(string friendshipId, CancellationToken ct = default);
-    Task<ServiceResult<FriendshipResponse>> RejectFriendRequestAsync(string friendshipId, CancellationToken ct = default);
+    Task<ServiceResult<FriendshipResponse>> AcceptFriendRequestAsync(
+        string actorUserId,
+        string friendshipId,
+        bool isAdmin,
+        CancellationToken ct = default);
+    Task<ServiceResult<FriendshipResponse>> RejectFriendRequestAsync(
+        string actorUserId,
+        string friendshipId,
+        bool isAdmin,
+        CancellationToken ct = default);
 
     Task<ServiceResult<IReadOnlyList<FriendshipResponse>>> GetFriendsAsync(
         string userId,

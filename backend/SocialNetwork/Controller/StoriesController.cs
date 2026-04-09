@@ -46,7 +46,7 @@ public class StoriesController : ApiControllerBase
     {
         if (!IsCurrentUserOrAdmin(userId))
         {
-            return UnauthorizedResponse("You are not allowed to access these stories.");
+            return UnauthorizedResponse("You are not allowed to access this user's stories.");
         }
 
         var result = await _storiesService.GetStoriesForUserAsync(userId, pageNumber, pageSize, HttpContext.RequestAborted);
@@ -59,6 +59,7 @@ public class StoriesController : ApiControllerBase
     /// <code>
     /// POST /api/stories
     /// {
+    ///   "userId": "user-123",
     ///   "content": "My story",
     ///   "imageUrl": "https://example.com/story.png",
     ///   "expiresAt": "2026-04-10T12:00:00Z"
@@ -73,8 +74,10 @@ public class StoriesController : ApiControllerBase
         var currentUserId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(currentUserId))
         {
-            return UnauthorizedResponse("User identity is missing.");
+            return UnauthorizedResponse("User context is missing.");
         }
+
+        request.UserId = currentUserId;
 
         var result = await _storiesService.CreateStoryAsync(currentUserId, request, HttpContext.RequestAborted);
         return FromServiceResult(result, created: true);
@@ -86,7 +89,17 @@ public class StoriesController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteStory(string storyId)
     {
-        var result = await _storiesService.DeleteStoryAsync(storyId, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _storiesService.DeleteStoryAsync(
+            currentUserId,
+            storyId,
+            User.IsInRole("Admin"),
+            HttpContext.RequestAborted);
         if (!result.Success)
         {
             return FromServiceResult(result);

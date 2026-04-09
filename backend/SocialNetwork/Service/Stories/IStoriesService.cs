@@ -21,5 +21,9 @@ public interface IStoriesService
         string actorUserId,
         StoryCreateRequest request,
         CancellationToken ct = default);
-    Task<ServiceResult<string>> DeleteStoryAsync(string storyId, CancellationToken ct = default);
+    Task<ServiceResult<string>> DeleteStoryAsync(
+        string actorUserId,
+        string storyId,
+        bool isAdmin,
+        CancellationToken ct = default);
 }

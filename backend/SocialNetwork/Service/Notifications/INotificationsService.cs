@@ -20,6 +20,14 @@ public interface INotificationsService
         string senderUserId,
         NotificationCreateRequest request,
         CancellationToken ct = default);
-    Task<ServiceResult<NotificationResponse>> MarkAsReadAsync(string notificationId, CancellationToken ct = default);
-    Task<ServiceResult<string>> DeleteNotificationAsync(string notificationId, CancellationToken ct = default);
+    Task<ServiceResult<NotificationResponse>> MarkAsReadAsync(
+        string actorUserId,
+        string notificationId,
+        bool isAdmin,
+        CancellationToken ct = default);
+    Task<ServiceResult<string>> DeleteNotificationAsync(
+        string actorUserId,
+        string notificationId,
+        bool isAdmin,
+        CancellationToken ct = default);
 }

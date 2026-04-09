@@ -107,9 +107,27 @@ public class NotificationsService : INotificationsService
     }
 
     public async Task<ServiceResult<NotificationResponse>> MarkAsReadAsync(
+        string actorUserId,
         string notificationId,
+        bool isAdmin,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<NotificationResponse>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
+        var notificationToAuthorize = await _notificationRepository.GetByIdAsync(notificationId, ct);
+        if (notificationToAuthorize is null)
+        {
+            return ServiceResult<NotificationResponse>.Fail(ServiceErrorType.NotFound, "Notification not found.");
+        }
+
+        if (!isAdmin && !string.Equals(notificationToAuthorize.RecipientUserId, actorUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<NotificationResponse>.Fail(ServiceErrorType.Unauthorized, "You are not allowed to modify this notification.");
+        }
+
         var notification = await _notificationRepository.MarkAsReadAsync(notificationId, ct);
         if (notification is null)
         {
@@ -120,9 +138,27 @@ public class NotificationsService : INotificationsService
     }
 
     public async Task<ServiceResult<string>> DeleteNotificationAsync(
+        string actorUserId,
         string notificationId,
+        bool isAdmin,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
+        var notificationToAuthorize = await _notificationRepository.GetByIdAsync(notificationId, ct);
+        if (notificationToAuthorize is null)
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Notification not found.");
+        }
+
+        if (!isAdmin && !string.Equals(notificationToAuthorize.RecipientUserId, actorUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "You are not allowed to delete this notification.");
+        }
+
         var deleted = await _notificationRepository.DeleteAsync(notificationId, ct);
         if (!deleted)
         {
