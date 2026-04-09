@@ -4,6 +4,8 @@ namespace SocialNetwork.Repository;
 
 public interface IUserRepository
 {
+    Task<IReadOnlyList<User>> GetAllOrderedByUserNameAsync(CancellationToken ct = default);
+
     Task<User?> GetByIdAsync(string userId, CancellationToken ct = default);
     Task<User?> GetByUserNameAsync(string userName, CancellationToken ct = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);

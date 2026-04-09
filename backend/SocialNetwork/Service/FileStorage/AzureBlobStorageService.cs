@@ -46,10 +46,12 @@ public class AzureBlobStorageService : IFileStorageService
 
         await _blobContainerClient.CreateIfNotExistsAsync(cancellationToken: ct);
 
-        if (fileStream.CanSeek)
+        if (!fileStream.CanSeek)
         {
-            fileStream.Position = 0;
+            throw new ArgumentException("File stream must be seekable.", nameof(fileStream));
         }
+
+        fileStream.Position = 0;
 
         var blobName = BlobFileNameHelper.CreateUniqueBlobName(fileName);
         var blobClient = _blobContainerClient.GetBlobClient(blobName);

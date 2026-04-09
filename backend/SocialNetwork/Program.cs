@@ -129,6 +129,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPostRepository, PostRepository>();
+builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 builder.Services.AddScoped<IFriendshipRepository, FriendshipRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IPostReportRepository, PostReportRepository>();
@@ -140,9 +141,19 @@ builder.Services.AddScoped<IFriendsService, FriendsService>();
 builder.Services.AddScoped<INotificationsService, NotificationsService>();
 builder.Services.AddScoped<IStoriesService, StoriesService>();
 
-builder.Services.Configure<AzureBlobStorageOptions>(
-    builder.Configuration.GetSection(AzureBlobStorageOptions.SectionName));
-builder.Services.AddScoped<IFileStorageService, AzureBlobStorageService>();
+// Register Azure Blob Storage only if connection string is configured
+var azureBlobOptions = builder.Configuration.GetSection(AzureBlobStorageOptions.SectionName).Get<AzureBlobStorageOptions>();
+if (azureBlobOptions?.ConnectionString != null && !string.IsNullOrWhiteSpace(azureBlobOptions.ConnectionString))
+{
+    builder.Services.Configure<AzureBlobStorageOptions>(
+        builder.Configuration.GetSection(AzureBlobStorageOptions.SectionName));
+    builder.Services.AddScoped<IFileStorageService, AzureBlobStorageService>();
+}
+else
+{
+    // Use a no-op implementation for development without Azure configured
+    builder.Services.AddScoped<IFileStorageService, NoOpFileStorageService>();
+}
 
 var app = builder.Build();
 

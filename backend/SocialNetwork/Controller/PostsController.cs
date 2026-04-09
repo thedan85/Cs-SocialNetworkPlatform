@@ -89,7 +89,7 @@ public class PostsController : ApiControllerBase
     public async Task<IActionResult> GetPostComments(
         string postId,
         [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 50)
+        [FromQuery] int pageSize = 20)
     {
         var result = await _postsService.GetPostCommentsAsync(postId, pageNumber, pageSize, HttpContext.RequestAborted);
         return FromServiceResult(result);

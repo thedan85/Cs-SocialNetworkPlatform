@@ -77,14 +77,18 @@ public class FriendshipRepository : IFriendshipRepository
         await _dbContext.SaveChangesAsync(ct);
     }
 
-    public async Task<bool> UpdateStatusAsync(string friendshipId, string status, CancellationToken ct = default)
+    public async Task<bool> UpdateStatusAsync(
+        string friendshipId,
+        string status,
+        DateTime updatedAt,
+        CancellationToken ct = default)
     {
         var affectedRows = await _dbContext.Friendships
             .Where(f => f.FriendshipId == friendshipId)
             .ExecuteUpdateAsync(
                 setter => setter
                     .SetProperty(f => f.Status, status)
-                    .SetProperty(f => f.UpdatedAt, DateTime.UtcNow),
+                    .SetProperty(f => f.UpdatedAt, updatedAt),
                 ct);
 
         return affectedRows > 0;

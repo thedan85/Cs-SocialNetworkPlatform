@@ -12,8 +12,8 @@ public static class ModelMappingExtensions
             UserId = user.Id,
             UserName = user.UserName ?? string.Empty,
             Email = user.Email ?? string.Empty,
-            ProfilePicture = user.ProfilePicture,
-            Bio = user.Bio,
+            ProfilePicture = user.ProfilePicture ?? string.Empty,
+            Bio = user.Bio ?? string.Empty,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
             IsActive = user.IsActive

@@ -66,22 +66,23 @@ public class NotificationRepository : INotificationRepository
         await _dbContext.SaveChangesAsync(ct);
     }
 
-    public async Task<bool> MarkAsReadAsync(string notificationId, CancellationToken ct = default)
+    public async Task<Notification?> MarkAsReadAsync(string notificationId, CancellationToken ct = default)
     {
-        var affectedRows = await _dbContext.Notifications
-            .Where(n => n.NotificationId == notificationId && !n.IsRead)
-            .ExecuteUpdateAsync(
-                setter => setter.SetProperty(n => n.IsRead, true),
-                ct);
+        var notification = await _dbContext.Notifications
+            .FirstOrDefaultAsync(n => n.NotificationId == notificationId, ct);
 
-        if (affectedRows > 0)
+        if (notification is null)
         {
-            return true;
+            return null;
         }
 
-        return await _dbContext.Notifications
-            .AsNoTracking()
-            .AnyAsync(n => n.NotificationId == notificationId, ct);
+        if (!notification.IsRead)
+        {
+            notification.IsRead = true;
+            await _dbContext.SaveChangesAsync(ct);
+        }
+
+        return notification;
     }
 
     public async Task<int> MarkAllAsReadAsync(string recipientUserId, CancellationToken ct = default)

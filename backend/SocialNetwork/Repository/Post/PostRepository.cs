@@ -14,11 +14,36 @@ public class PostRepository : IPostRepository
         _dbContext = dbContext;
     }
 
+    public async Task<IReadOnlyList<Post>> GetPagedAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var posts = await _dbContext.Posts
+            .AsNoTracking()
+            .OrderByDescending(post => post.CreatedAt)
+            .ApplyPaging(pageNumber, pageSize)
+            .ToListAsync(ct);
+
+        return posts;
+    }
+
     public Task<Post?> GetByIdAsync(string postId, CancellationToken ct = default)
     {
         return _dbContext.Posts
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.PostId == postId, ct);
+    }
+
+    public async Task<IReadOnlyList<Post>> GetByUserIdOrderedAsync(string userId, CancellationToken ct = default)
+    {
+        var posts = await _dbContext.Posts
+            .AsNoTracking()
+            .Where(post => post.UserId == userId)
+            .OrderByDescending(post => post.CreatedAt)
+            .ToListAsync(ct);
+
+        return posts;
     }
 
     public async Task<IReadOnlyList<Post>> GetByUserIdAsync(
@@ -50,13 +75,17 @@ public class PostRepository : IPostRepository
 
     public async Task UpdateAsync(Post post, CancellationToken ct = default)
     {
+        var updatedAt = post.UpdatedAt == default
+            ? DateTime.UtcNow
+            : post.UpdatedAt;
+
         var affectedRows = await _dbContext.Posts
             .Where(p => p.PostId == post.PostId)
             .ExecuteUpdateAsync(
                 setter => setter
                     .SetProperty(p => p.Content, post.Content)
                     .SetProperty(p => p.ImageUrl, post.ImageUrl)
-                    .SetProperty(p => p.UpdatedAt, DateTime.UtcNow),
+                    .SetProperty(p => p.UpdatedAt, updatedAt),
                 ct);
 
         if (affectedRows == 0)

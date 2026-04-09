@@ -24,7 +24,11 @@ public interface IFriendshipRepository
 
     Task AddAsync(Friendship friendship, CancellationToken ct = default);
 
-    Task<bool> UpdateStatusAsync(string friendshipId, string status, CancellationToken ct = default);
+    Task<bool> UpdateStatusAsync(
+        string friendshipId,
+        string status,
+        DateTime updatedAt,
+        CancellationToken ct = default);
 
     Task DeleteAsync(string friendshipId, CancellationToken ct = default);
 }

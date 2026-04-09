@@ -13,6 +13,16 @@ public class UserRepository : IUserRepository
         _dbContext = dbContext;
     }
 
+    public async Task<IReadOnlyList<User>> GetAllOrderedByUserNameAsync(CancellationToken ct = default)
+    {
+        var users = await _dbContext.Users
+            .AsNoTracking()
+            .OrderBy(user => user.UserName)
+            .ToListAsync(ct);
+
+        return users;
+    }
+
     public Task<User?> GetByIdAsync(string userId, CancellationToken ct = default)
     {
         return _dbContext.Users

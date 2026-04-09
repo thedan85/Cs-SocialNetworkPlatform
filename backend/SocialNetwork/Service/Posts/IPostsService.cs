@@ -17,7 +17,7 @@ public interface IPostsService
     Task<ServiceResult<IReadOnlyList<CommentResponse>>> GetPostCommentsAsync(
         string postId,
         int pageNumber = 1,
-        int pageSize = 50,
+        int pageSize = 20,
         CancellationToken ct = default);
 
     Task<ServiceResult<CommentResponse>> CreateCommentAsync(string postId, CommentCreateRequest request, CancellationToken ct = default);

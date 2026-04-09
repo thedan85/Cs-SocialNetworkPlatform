@@ -4,7 +4,14 @@ namespace SocialNetwork.Repository;
 
 public interface IPostRepository
 {
+    Task<IReadOnlyList<Post>> GetPagedAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
+
     Task<Post?> GetByIdAsync(string postId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<Post>> GetByUserIdOrderedAsync(string userId, CancellationToken ct = default);
 
     Task<IReadOnlyList<Post>> GetByUserIdAsync(
         string userId,

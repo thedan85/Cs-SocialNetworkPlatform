@@ -1,4 +1,5 @@
 using SocialNetwork.Dtos;
+using SocialNetwork.Data;
 using SocialNetwork.Extensions;
 using SocialNetwork.Helpers;
 using SocialNetwork.Model;
@@ -8,15 +9,18 @@ namespace SocialNetwork.Service;
 
 public class FriendsService : IFriendsService
 {
+    private readonly ApplicationDbContext _dbContext;
     private readonly IFriendshipRepository _friendshipRepository;
     private readonly IUserRepository _userRepository;
     private readonly INotificationRepository _notificationRepository;
 
     public FriendsService(
+        ApplicationDbContext dbContext,
         IFriendshipRepository friendshipRepository,
         IUserRepository userRepository,
         INotificationRepository notificationRepository)
     {
+        _dbContext = dbContext;
         _friendshipRepository = friendshipRepository;
         _userRepository = userRepository;
         _notificationRepository = notificationRepository;
@@ -55,26 +59,39 @@ public class FriendsService : IFriendsService
         {
             UserId1 = request.RequesterUserId,
             UserId2 = request.AddresseeUserId,
-            Status = "Pending",
-            CreatedAt = DateTime.UtcNow
+            Status = "Pending"
         };
 
-        await _friendshipRepository.AddAsync(friendship, ct);
+        var now = DateTime.UtcNow;
+        friendship.CreatedAt = now;
 
-        var requester = await _userRepository.GetByIdAsync(request.RequesterUserId, ct);
-        var requesterDisplayName = requester?.UserName ?? "A user";
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
 
-        var notification = new Notification
+        try
         {
-            RecipientUserId = request.AddresseeUserId,
-            SenderUserId = request.RequesterUserId,
-            Type = "FriendRequest",
-            Content = NotificationContentHelper.BuildFriendRequestContent(requesterDisplayName),
-            CreatedAt = DateTime.UtcNow,
-            IsRead = false
-        };
+            await _friendshipRepository.AddAsync(friendship, ct);
 
-        await _notificationRepository.AddAsync(notification, ct);
+            var requester = await _userRepository.GetByIdAsync(request.RequesterUserId, ct);
+            var requesterDisplayName = requester?.UserName ?? $"User {request.RequesterUserId}";
+
+            var notification = new Notification
+            {
+                RecipientUserId = request.AddresseeUserId,
+                SenderUserId = request.RequesterUserId,
+                Type = "FriendRequest",
+                Content = NotificationContentHelper.BuildFriendRequestContent(requesterDisplayName),
+                CreatedAt = now,
+                IsRead = false
+            };
+
+            await _notificationRepository.AddAsync(notification, ct);
+            await transaction.CommitAsync(ct);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
 
         return ServiceResult<FriendshipResponse>.Ok(friendship.ToFriendshipResponse());
     }
@@ -96,29 +113,43 @@ public class FriendsService : IFriendsService
                 "Only pending requests can be accepted.");
         }
 
-        var updated = await _friendshipRepository.UpdateStatusAsync(friendshipId, "Accepted", ct);
-        if (!updated)
+        var now = DateTime.UtcNow;
+
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
+
+        try
         {
-            return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.NotFound, "Friend request not found.");
+            var updated = await _friendshipRepository.UpdateStatusAsync(friendshipId, "Accepted", now, ct);
+            if (!updated)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.NotFound, "Friend request not found.");
+            }
+
+            var accepter = await _userRepository.GetByIdAsync(friendship.UserId2, ct);
+            var accepterDisplayName = accepter?.UserName ?? $"User {friendship.UserId2}";
+
+            var notification = new Notification
+            {
+                RecipientUserId = friendship.UserId1,
+                SenderUserId = friendship.UserId2,
+                Type = "FriendAccepted",
+                Content = NotificationContentHelper.BuildFriendAcceptedContent(accepterDisplayName),
+                CreatedAt = now,
+                IsRead = false
+            };
+
+            await _notificationRepository.AddAsync(notification, ct);
+            await transaction.CommitAsync(ct);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
         }
 
         friendship.Status = "Accepted";
-        friendship.UpdatedAt = DateTime.UtcNow;
-
-        var accepter = await _userRepository.GetByIdAsync(friendship.UserId2, ct);
-        var accepterDisplayName = accepter?.UserName ?? "A user";
-
-        var notification = new Notification
-        {
-            RecipientUserId = friendship.UserId1,
-            SenderUserId = friendship.UserId2,
-            Type = "FriendAccepted",
-            Content = NotificationContentHelper.BuildFriendAcceptedContent(accepterDisplayName),
-            CreatedAt = DateTime.UtcNow,
-            IsRead = false
-        };
-
-        await _notificationRepository.AddAsync(notification, ct);
+        friendship.UpdatedAt = now;
 
         return ServiceResult<FriendshipResponse>.Ok(friendship.ToFriendshipResponse());
     }
@@ -140,14 +171,16 @@ public class FriendsService : IFriendsService
                 "Only pending requests can be rejected.");
         }
 
-        var updated = await _friendshipRepository.UpdateStatusAsync(friendshipId, "Rejected", ct);
+        var now = DateTime.UtcNow;
+
+        var updated = await _friendshipRepository.UpdateStatusAsync(friendshipId, "Rejected", now, ct);
         if (!updated)
         {
             return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.NotFound, "Friend request not found.");
         }
 
         friendship.Status = "Rejected";
-        friendship.UpdatedAt = DateTime.UtcNow;
+        friendship.UpdatedAt = now;
 
         return ServiceResult<FriendshipResponse>.Ok(friendship.ToFriendshipResponse());
     }

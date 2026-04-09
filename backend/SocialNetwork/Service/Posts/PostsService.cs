@@ -11,17 +11,20 @@ public class PostsService : IPostsService
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IPostRepository _postRepository;
+    private readonly ICommentRepository _commentRepository;
     private readonly IUserRepository _userRepository;
     private readonly IPostReportRepository _postReportRepository;
 
     public PostsService(
         ApplicationDbContext dbContext,
         IPostRepository postRepository,
+        ICommentRepository commentRepository,
         IUserRepository userRepository,
         IPostReportRepository postReportRepository)
     {
         _dbContext = dbContext;
         _postRepository = postRepository;
+        _commentRepository = commentRepository;
         _userRepository = userRepository;
         _postReportRepository = postReportRepository;
     }
@@ -31,14 +34,13 @@ public class PostsService : IPostsService
         int pageSize = 20,
         CancellationToken ct = default)
     {
-        var posts = await _dbContext.Posts
-            .AsNoTracking()
-            .OrderByDescending(post => post.CreatedAt)
-            .ApplyPaging(pageNumber, pageSize)
-            .Select(post => post.ToPostResponse())
-            .ToListAsync(ct);
+        var posts = await _postRepository.GetPagedAsync(pageNumber, pageSize, ct);
 
-        return ServiceResult<IReadOnlyList<PostResponse>>.Ok(posts);
+        var responses = posts
+            .Select(post => post.ToPostResponse())
+            .ToList();
+
+        return ServiceResult<IReadOnlyList<PostResponse>>.Ok(responses);
     }
 
     public async Task<ServiceResult<PostResponse>> GetPostByIdAsync(string postId, CancellationToken ct = default)
@@ -84,18 +86,14 @@ public class PostsService : IPostsService
             return ServiceResult<PostResponse>.Fail(ServiceErrorType.NotFound, "Post not found.");
         }
 
+        var now = DateTime.UtcNow;
+
         existingPost.Content = request.Content;
         existingPost.ImageUrl = request.ImageUrl;
+        existingPost.UpdatedAt = now;
 
         await _postRepository.UpdateAsync(existingPost, ct);
-
-        var updatedPost = await _postRepository.GetByIdAsync(postId, ct);
-        if (updatedPost is null)
-        {
-            return ServiceResult<PostResponse>.Fail(ServiceErrorType.NotFound, "Post not found.");
-        }
-
-        return ServiceResult<PostResponse>.Ok(updatedPost.ToPostResponse());
+        return ServiceResult<PostResponse>.Ok(existingPost.ToPostResponse());
     }
 
     public async Task<ServiceResult<string>> DeletePostAsync(string postId, CancellationToken ct = default)
@@ -113,7 +111,7 @@ public class PostsService : IPostsService
     public async Task<ServiceResult<IReadOnlyList<CommentResponse>>> GetPostCommentsAsync(
         string postId,
         int pageNumber = 1,
-        int pageSize = 50,
+        int pageSize = 20,
         CancellationToken ct = default)
     {
         var post = await _postRepository.GetByIdAsync(postId, ct);
@@ -122,15 +120,13 @@ public class PostsService : IPostsService
             return ServiceResult<IReadOnlyList<CommentResponse>>.Fail(ServiceErrorType.NotFound, "Post not found.");
         }
 
-        var comments = await _dbContext.Comments
-            .AsNoTracking()
-            .Where(comment => comment.PostId == postId)
-            .OrderByDescending(comment => comment.CreatedAt)
-            .ApplyPaging(pageNumber, pageSize, defaultPageSize: 50)
-            .Select(comment => comment.ToCommentResponse())
-            .ToListAsync(ct);
+        var comments = await _commentRepository.GetByPostIdAsync(postId, pageNumber, pageSize, ct);
 
-        return ServiceResult<IReadOnlyList<CommentResponse>>.Ok(comments);
+        var responses = comments
+            .Select(comment => comment.ToCommentResponse())
+            .ToList();
+
+        return ServiceResult<IReadOnlyList<CommentResponse>>.Ok(responses);
     }
 
     public async Task<ServiceResult<CommentResponse>> CreateCommentAsync(
@@ -150,17 +146,18 @@ public class PostsService : IPostsService
             return ServiceResult<CommentResponse>.Fail(ServiceErrorType.NotFound, "User not found.");
         }
 
+        var now = DateTime.UtcNow;
+
         var comment = new Comment
         {
             PostId = postId,
             UserId = request.UserId,
             Content = request.Content,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            CreatedAt = now,
+            UpdatedAt = now
         };
 
-        await _dbContext.Comments.AddAsync(comment, ct);
-        await _dbContext.SaveChangesAsync(ct);
+        await _commentRepository.AddAsync(comment, ct);
 
         return ServiceResult<CommentResponse>.Ok(comment.ToCommentResponse());
     }
@@ -170,11 +167,9 @@ public class PostsService : IPostsService
         string commentId,
         CancellationToken ct = default)
     {
-        var deletedRows = await _dbContext.Comments
-            .Where(entity => entity.PostId == postId && entity.CommentId == commentId)
-            .ExecuteDeleteAsync(ct);
+        var deleted = await _commentRepository.DeleteAsync(postId, commentId, ct);
 
-        if (deletedRows == 0)
+        if (!deleted)
         {
             return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Comment not found.");
         }
@@ -187,59 +182,77 @@ public class PostsService : IPostsService
         LikeCreateRequest request,
         CancellationToken ct = default)
     {
-        var postExists = await _dbContext.Posts
-            .AsNoTracking()
-            .AnyAsync(entity => entity.PostId == postId, ct);
-
-        if (!postExists)
-        {
-            return ServiceResult<LikePostResult>.Fail(ServiceErrorType.NotFound, "Post not found.");
-        }
-
         var userExists = await _userRepository.ExistsByIdAsync(request.UserId, ct);
         if (!userExists)
         {
             return ServiceResult<LikePostResult>.Fail(ServiceErrorType.NotFound, "User not found.");
         }
 
-        var existingLike = await _dbContext.Likes
-            .AsNoTracking()
-            .FirstOrDefaultAsync(entity => entity.PostId == postId && entity.UserId == request.UserId, ct);
-
-        if (existingLike is not null)
-        {
-            return ServiceResult<LikePostResult>.Ok(new LikePostResult
-            {
-                Like = existingLike.ToLikeResponse(),
-                IsCreated = false
-            });
-        }
-
-        var like = new Like
-        {
-            PostId = postId,
-            UserId = request.UserId,
-            CreatedAt = DateTime.UtcNow
-        };
-
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
 
-        await _dbContext.Likes.AddAsync(like, ct);
-        await _dbContext.SaveChangesAsync(ct);
-
-        await _dbContext.Posts
-            .Where(p => p.PostId == postId)
-            .ExecuteUpdateAsync(
-                setter => setter.SetProperty(p => p.LikeCount, p => p.LikeCount + 1),
-                ct);
-
-        await transaction.CommitAsync(ct);
-
-        return ServiceResult<LikePostResult>.Ok(new LikePostResult
+        try
         {
-            Like = like.ToLikeResponse(),
-            IsCreated = true
-        });
+            var postExists = await _dbContext.Posts
+                .AsNoTracking()
+                .AnyAsync(entity => entity.PostId == postId, ct);
+
+            if (!postExists)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<LikePostResult>.Fail(ServiceErrorType.NotFound, "Post not found.");
+            }
+
+            var existingLike = await _dbContext.Likes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(entity => entity.PostId == postId && entity.UserId == request.UserId, ct);
+
+            if (existingLike is not null)
+            {
+                await transaction.RollbackAsync(ct);
+
+                return ServiceResult<LikePostResult>.Ok(new LikePostResult
+                {
+                    Like = existingLike.ToLikeResponse(),
+                    IsCreated = false
+                });
+            }
+
+            var now = DateTime.UtcNow;
+            var like = new Like
+            {
+                PostId = postId,
+                UserId = request.UserId,
+                CreatedAt = now
+            };
+
+            await _dbContext.Likes.AddAsync(like, ct);
+            await _dbContext.SaveChangesAsync(ct);
+
+            var updatedRows = await _dbContext.Posts
+                .Where(p => p.PostId == postId)
+                .ExecuteUpdateAsync(
+                    setter => setter.SetProperty(p => p.LikeCount, p => p.LikeCount + 1),
+                    ct);
+
+            if (updatedRows == 0)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<LikePostResult>.Fail(ServiceErrorType.NotFound, "Post not found.");
+            }
+
+            await transaction.CommitAsync(ct);
+
+            return ServiceResult<LikePostResult>.Ok(new LikePostResult
+            {
+                Like = like.ToLikeResponse(),
+                IsCreated = true
+            });
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
     }
 
     public async Task<ServiceResult<PostReportResponse>> ReportPostAsync(

@@ -74,6 +74,13 @@ public class NotificationsService : INotificationsService
         NotificationCreateRequest request,
         CancellationToken ct = default)
     {
+        if (string.Equals(request.RecipientUserId, request.SenderUserId, StringComparison.Ordinal))
+        {
+            return ServiceResult<NotificationResponse>.Fail(
+                ServiceErrorType.Validation,
+                "Cannot notify yourself.");
+        }
+
         var recipientExists = await _userRepository.ExistsByIdAsync(request.RecipientUserId, ct);
         var senderExists = await _userRepository.ExistsByIdAsync(request.SenderUserId, ct);
         if (!recipientExists || !senderExists)
@@ -81,13 +88,15 @@ public class NotificationsService : INotificationsService
             return ServiceResult<NotificationResponse>.Fail(ServiceErrorType.NotFound, "Recipient or sender was not found.");
         }
 
+        var now = DateTime.UtcNow;
+
         var notification = new Notification
         {
             RecipientUserId = request.RecipientUserId,
             SenderUserId = request.SenderUserId,
             Type = request.Type,
             Content = request.Content,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = now,
             IsRead = false
         };
 
@@ -100,19 +109,13 @@ public class NotificationsService : INotificationsService
         string notificationId,
         CancellationToken ct = default)
     {
-        var markedAsRead = await _notificationRepository.MarkAsReadAsync(notificationId, ct);
-        if (!markedAsRead)
+        var notification = await _notificationRepository.MarkAsReadAsync(notificationId, ct);
+        if (notification is null)
         {
             return ServiceResult<NotificationResponse>.Fail(ServiceErrorType.NotFound, "Notification not found.");
         }
 
-        var updatedNotification = await _notificationRepository.GetByIdAsync(notificationId, ct);
-        if (updatedNotification is null)
-        {
-            return ServiceResult<NotificationResponse>.Fail(ServiceErrorType.NotFound, "Notification not found.");
-        }
-
-        return ServiceResult<NotificationResponse>.Ok(updatedNotification.ToNotificationResponse());
+        return ServiceResult<NotificationResponse>.Ok(notification.ToNotificationResponse());
     }
 
     public async Task<ServiceResult<string>> DeleteNotificationAsync(

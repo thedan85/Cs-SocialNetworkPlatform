@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using SocialNetwork.Data;
 using SocialNetwork.Dtos;
 using SocialNetwork.Extensions;
 using SocialNetwork.Model;
@@ -10,29 +8,29 @@ namespace SocialNetwork.Service;
 
 public class UsersService : IUsersService
 {
-    private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<User> _userManager;
     private readonly IUserRepository _userRepository;
+    private readonly IPostRepository _postRepository;
 
     public UsersService(
-        ApplicationDbContext dbContext,
         UserManager<User> userManager,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        IPostRepository postRepository)
     {
-        _dbContext = dbContext;
         _userManager = userManager;
         _userRepository = userRepository;
+        _postRepository = postRepository;
     }
 
     public async Task<ServiceResult<IReadOnlyList<UserResponse>>> GetUsersAsync(CancellationToken ct = default)
     {
-        var users = await _dbContext.Users
-            .AsNoTracking()
-            .OrderBy(user => user.UserName)
-            .Select(user => user.ToUserResponse())
-            .ToListAsync(ct);
+        var users = await _userRepository.GetAllOrderedByUserNameAsync(ct);
 
-        return ServiceResult<IReadOnlyList<UserResponse>>.Ok(users);
+        var responses = users
+            .Select(user => user.ToUserResponse())
+            .ToList();
+
+        return ServiceResult<IReadOnlyList<UserResponse>>.Ok(responses);
     }
 
     public async Task<ServiceResult<UserResponse>> GetUserByIdAsync(string userId, CancellationToken ct = default)
@@ -95,13 +93,12 @@ public class UsersService : IUsersService
             return ServiceResult<IReadOnlyList<PostResponse>>.Fail(ServiceErrorType.NotFound, "User not found.");
         }
 
-        var posts = await _dbContext.Posts
-            .AsNoTracking()
-            .Where(post => post.UserId == userId)
-            .OrderByDescending(post => post.CreatedAt)
-            .Select(post => post.ToPostResponse())
-            .ToListAsync(ct);
+        var posts = await _postRepository.GetByUserIdOrderedAsync(userId, ct);
 
-        return ServiceResult<IReadOnlyList<PostResponse>>.Ok(posts);
+        var responses = posts
+            .Select(post => post.ToPostResponse())
+            .ToList();
+
+        return ServiceResult<IReadOnlyList<PostResponse>>.Ok(responses);
     }
 }
