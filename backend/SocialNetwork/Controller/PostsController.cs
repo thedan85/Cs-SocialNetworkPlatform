@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SocialNetwork.Data;
 using SocialNetwork.Dtos;
-using SocialNetwork.Model;
+using SocialNetwork.Service;
 
 namespace SocialNetwork.Controller;
 
@@ -12,33 +10,20 @@ namespace SocialNetwork.Controller;
 [Authorize]
 public class PostsController : ApiControllerBase
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IPostsService _postsService;
 
-    public PostsController(ApplicationDbContext dbContext)
+    public PostsController(IPostsService postsService)
     {
-        _dbContext = dbContext;
+        _postsService = postsService;
     }
 
     /// <summary>Get all posts.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<List<PostResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetPosts()
+    public async Task<IActionResult> GetPosts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
     {
-        var posts = await _dbContext.Posts.AsNoTracking()
-            .OrderByDescending(post => post.CreatedAt)
-            .Select(post => new PostResponse
-            {
-                PostId = post.PostId,
-                UserId = post.UserId,
-                Content = post.Content,
-                ImageUrl = post.ImageUrl,
-                LikeCount = post.LikeCount,
-                CreatedAt = post.CreatedAt,
-                UpdatedAt = post.UpdatedAt
-            })
-            .ToListAsync();
-
-        return OkResponse(posts);
+        var result = await _postsService.GetPostsAsync(pageNumber, pageSize, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 
     /// <summary>Get a single post by id.</summary>
@@ -47,26 +32,8 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPostById(string postId)
     {
-        var post = await _dbContext.Posts.AsNoTracking()
-            .FirstOrDefaultAsync(entity => entity.PostId == postId);
-
-        if (post == null)
-        {
-            return NotFoundResponse("Post not found.");
-        }
-
-        var response = new PostResponse
-        {
-            PostId = post.PostId,
-            UserId = post.UserId,
-            Content = post.Content,
-            ImageUrl = post.ImageUrl,
-            LikeCount = post.LikeCount,
-            CreatedAt = post.CreatedAt,
-            UpdatedAt = post.UpdatedAt
-        };
-
-        return OkResponse(response);
+        var result = await _postsService.GetPostByIdAsync(postId, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 
     /// <summary>Create a new post.</summary>
@@ -86,36 +53,8 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreatePost([FromBody] PostCreateRequest request)
     {
-        var userExists = await _dbContext.Users.AnyAsync(user => user.Id == request.UserId);
-        if (!userExists)
-        {
-            return NotFoundResponse("User not found.");
-        }
-
-        var post = new Post
-        {
-            UserId = request.UserId,
-            Content = request.Content,
-            ImageUrl = request.ImageUrl,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        _dbContext.Posts.Add(post);
-        await _dbContext.SaveChangesAsync();
-
-        var response = new PostResponse
-        {
-            PostId = post.PostId,
-            UserId = post.UserId,
-            Content = post.Content,
-            ImageUrl = post.ImageUrl,
-            LikeCount = post.LikeCount,
-            CreatedAt = post.CreatedAt,
-            UpdatedAt = post.UpdatedAt
-        };
-
-        return CreatedResponse(response);
+        var result = await _postsService.CreatePostAsync(request, HttpContext.RequestAborted);
+        return FromServiceResult(result, created: true);
     }
 
     /// <summary>Update an existing post.</summary>
@@ -124,30 +63,8 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdatePost(string postId, [FromBody] PostUpdateRequest request)
     {
-        var post = await _dbContext.Posts.FirstOrDefaultAsync(entity => entity.PostId == postId);
-        if (post == null)
-        {
-            return NotFoundResponse("Post not found.");
-        }
-
-        post.Content = request.Content;
-        post.ImageUrl = request.ImageUrl;
-        post.UpdatedAt = DateTime.UtcNow;
-
-        await _dbContext.SaveChangesAsync();
-
-        var response = new PostResponse
-        {
-            PostId = post.PostId,
-            UserId = post.UserId,
-            Content = post.Content,
-            ImageUrl = post.ImageUrl,
-            LikeCount = post.LikeCount,
-            CreatedAt = post.CreatedAt,
-            UpdatedAt = post.UpdatedAt
-        };
-
-        return OkResponse(response);
+        var result = await _postsService.UpdatePostAsync(postId, request, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 
     /// <summary>Delete a post.</summary>
@@ -156,46 +73,26 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeletePost(string postId)
     {
-        var post = await _dbContext.Posts.FirstOrDefaultAsync(entity => entity.PostId == postId);
-        if (post == null)
+        var result = await _postsService.DeletePostAsync(postId, HttpContext.RequestAborted);
+        if (!result.Success)
         {
-            return NotFoundResponse("Post not found.");
+            return FromServiceResult(result);
         }
 
-        _dbContext.Posts.Remove(post);
-        await _dbContext.SaveChangesAsync();
-
-        return OkResponse(new { message = "Post deleted." });
+        return OkResponse(new { message = result.Data });
     }
 
     /// <summary>Get comments for a post.</summary>
     [HttpGet("{postId}/comments")]
     [ProducesResponseType(typeof(ApiResponse<List<CommentResponse>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetPostComments(string postId)
+    public async Task<IActionResult> GetPostComments(
+        string postId,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 50)
     {
-        var postExists = await _dbContext.Posts.AnyAsync(entity => entity.PostId == postId);
-        if (!postExists)
-        {
-            return NotFoundResponse("Post not found.");
-        }
-
-        var comments = await _dbContext.Comments.AsNoTracking()
-            .Where(comment => comment.PostId == postId)
-            .OrderByDescending(comment => comment.CreatedAt)
-            .Select(comment => new CommentResponse
-            {
-                CommentId = comment.CommentId,
-                PostId = comment.PostId,
-                UserId = comment.UserId,
-                Content = comment.Content,
-                LikeCount = comment.LikeCount,
-                CreatedAt = comment.CreatedAt,
-                UpdatedAt = comment.UpdatedAt
-            })
-            .ToListAsync();
-
-        return OkResponse(comments);
+        var result = await _postsService.GetPostCommentsAsync(postId, pageNumber, pageSize, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 
     /// <summary>Add a comment to a post.</summary>
@@ -214,42 +111,8 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateComment(string postId, [FromBody] CommentCreateRequest request)
     {
-        var postExists = await _dbContext.Posts.AnyAsync(entity => entity.PostId == postId);
-        if (!postExists)
-        {
-            return NotFoundResponse("Post not found.");
-        }
-
-        var userExists = await _dbContext.Users.AnyAsync(user => user.Id == request.UserId);
-        if (!userExists)
-        {
-            return NotFoundResponse("User not found.");
-        }
-
-        var comment = new Comment
-        {
-            PostId = postId,
-            UserId = request.UserId,
-            Content = request.Content,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        _dbContext.Comments.Add(comment);
-        await _dbContext.SaveChangesAsync();
-
-        var response = new CommentResponse
-        {
-            CommentId = comment.CommentId,
-            PostId = comment.PostId,
-            UserId = comment.UserId,
-            Content = comment.Content,
-            LikeCount = comment.LikeCount,
-            CreatedAt = comment.CreatedAt,
-            UpdatedAt = comment.UpdatedAt
-        };
-
-        return CreatedResponse(response);
+        var result = await _postsService.CreateCommentAsync(postId, request, HttpContext.RequestAborted);
+        return FromServiceResult(result, created: true);
     }
 
     /// <summary>Delete a comment on a post.</summary>
@@ -258,18 +121,13 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteComment(string postId, string commentId)
     {
-        var comment = await _dbContext.Comments
-            .FirstOrDefaultAsync(entity => entity.PostId == postId && entity.CommentId == commentId);
-
-        if (comment == null)
+        var result = await _postsService.DeleteCommentAsync(postId, commentId, HttpContext.RequestAborted);
+        if (!result.Success)
         {
-            return NotFoundResponse("Comment not found.");
+            return FromServiceResult(result);
         }
 
-        _dbContext.Comments.Remove(comment);
-        await _dbContext.SaveChangesAsync();
-
-        return OkResponse(new { message = "Comment deleted." });
+        return OkResponse(new { message = result.Data });
     }
 
     /// <summary>Like a post.</summary>
@@ -279,54 +137,23 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> LikePost(string postId, [FromBody] LikeCreateRequest request)
     {
-        var post = await _dbContext.Posts.FirstOrDefaultAsync(entity => entity.PostId == postId);
-        if (post == null)
+        var result = await _postsService.LikePostAsync(postId, request, HttpContext.RequestAborted);
+        if (!result.Success)
         {
-            return NotFoundResponse("Post not found.");
+            return FromServiceResult(result);
         }
 
-        var userExists = await _dbContext.Users.AnyAsync(user => user.Id == request.UserId);
-        if (!userExists)
+        if (result.Data is null)
         {
-            return NotFoundResponse("User not found.");
+            return BadRequestResponse("Unable to process like.");
         }
 
-        var existingLike = await _dbContext.Likes
-            .FirstOrDefaultAsync(entity => entity.PostId == postId && entity.UserId == request.UserId);
-
-        if (existingLike != null)
+        if (result.Data.IsCreated)
         {
-            var existingResponse = new LikeResponse
-            {
-                LikeId = existingLike.LikeId,
-                UserId = existingLike.UserId,
-                PostId = existingLike.PostId,
-                CreatedAt = existingLike.CreatedAt
-            };
-
-            return OkResponse(existingResponse);
+            return CreatedResponse(result.Data.Like);
         }
 
-        var like = new Like
-        {
-            PostId = postId,
-            UserId = request.UserId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _dbContext.Likes.Add(like);
-        post.LikeCount += 1;
-        await _dbContext.SaveChangesAsync();
-
-        var response = new LikeResponse
-        {
-            LikeId = like.LikeId,
-            UserId = like.UserId,
-            PostId = like.PostId,
-            CreatedAt = like.CreatedAt
-        };
-
-        return CreatedResponse(response);
+        return OkResponse(result.Data.Like);
     }
 
     /// <summary>Report a post.</summary>
@@ -335,42 +162,7 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ReportPost(string postId, [FromBody] PostReportCreateRequest request)
     {
-        var postExists = await _dbContext.Posts.AnyAsync(entity => entity.PostId == postId);
-        if (!postExists)
-        {
-            return NotFoundResponse("Post not found.");
-        }
-
-        var userExists = await _dbContext.Users.AnyAsync(user => user.Id == request.ReporterUserId);
-        if (!userExists)
-        {
-            return NotFoundResponse("User not found.");
-        }
-
-        var report = new PostReport
-        {
-            PostId = postId,
-            ReporterUserId = request.ReporterUserId,
-            Reason = request.Reason,
-            Description = request.Description,
-            Status = false,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _dbContext.PostReports.Add(report);
-        await _dbContext.SaveChangesAsync();
-
-        var response = new PostReportResponse
-        {
-            PostReportId = report.PostReportId,
-            PostId = report.PostId,
-            ReporterUserId = report.ReporterUserId,
-            Reason = report.Reason,
-            Description = report.Description,
-            Status = report.Status,
-            CreatedAt = report.CreatedAt
-        };
-
-        return CreatedResponse(response);
+        var result = await _postsService.ReportPostAsync(postId, request, HttpContext.RequestAborted);
+        return FromServiceResult(result, created: true);
     }
 }

@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SocialNetwork.Data;
 using SocialNetwork.Dtos;
-using SocialNetwork.Model;
+using SocialNetwork.Service;
 
 namespace SocialNetwork.Controller;
 
@@ -12,57 +10,35 @@ namespace SocialNetwork.Controller;
 [Authorize]
 public class NotificationsController : ApiControllerBase
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly INotificationsService _notificationsService;
 
-    public NotificationsController(ApplicationDbContext dbContext)
+    public NotificationsController(INotificationsService notificationsService)
     {
-        _dbContext = dbContext;
+        _notificationsService = notificationsService;
     }
 
     /// <summary>Get notifications for a user.</summary>
     [HttpGet("user/{userId}")]
     [ProducesResponseType(typeof(ApiResponse<List<NotificationResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetNotifications(string userId)
+    public async Task<IActionResult> GetNotifications(
+        string userId,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 50)
     {
-        var notifications = await _dbContext.Notifications.AsNoTracking()
-            .Where(notification => notification.RecipientUserId == userId)
-            .OrderByDescending(notification => notification.CreatedAt)
-            .Select(notification => new NotificationResponse
-            {
-                NotificationId = notification.NotificationId,
-                RecipientUserId = notification.RecipientUserId,
-                SenderUserId = notification.SenderUserId,
-                Type = notification.Type,
-                Content = notification.Content,
-                CreatedAt = notification.CreatedAt,
-                IsRead = notification.IsRead
-            })
-            .ToListAsync();
-
-        return OkResponse(notifications);
+        var result = await _notificationsService.GetNotificationsAsync(userId, pageNumber, pageSize, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 
     /// <summary>Get unread notifications for a user.</summary>
     [HttpGet("user/{userId}/unread")]
     [ProducesResponseType(typeof(ApiResponse<List<NotificationResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetUnreadNotifications(string userId)
+    public async Task<IActionResult> GetUnreadNotifications(
+        string userId,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 50)
     {
-        var notifications = await _dbContext.Notifications.AsNoTracking()
-            .Where(notification => notification.RecipientUserId == userId && !notification.IsRead)
-            .OrderByDescending(notification => notification.CreatedAt)
-            .Select(notification => new NotificationResponse
-            {
-                NotificationId = notification.NotificationId,
-                RecipientUserId = notification.RecipientUserId,
-                SenderUserId = notification.SenderUserId,
-                Type = notification.Type,
-                Content = notification.Content,
-                CreatedAt = notification.CreatedAt,
-                IsRead = notification.IsRead
-            })
-            .ToListAsync();
-
-        return OkResponse(notifications);
+        var result = await _notificationsService.GetUnreadNotificationsAsync(userId, pageNumber, pageSize, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 
     /// <summary>Create a notification.</summary>
@@ -83,38 +59,8 @@ public class NotificationsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateNotification([FromBody] NotificationCreateRequest request)
     {
-        var recipientExists = await _dbContext.Users.AnyAsync(user => user.Id == request.RecipientUserId);
-        var senderExists = await _dbContext.Users.AnyAsync(user => user.Id == request.SenderUserId);
-        if (!recipientExists || !senderExists)
-        {
-            return NotFoundResponse("Recipient or sender was not found.");
-        }
-
-        var notification = new Notification
-        {
-            RecipientUserId = request.RecipientUserId,
-            SenderUserId = request.SenderUserId,
-            Type = request.Type,
-            Content = request.Content,
-            CreatedAt = DateTime.UtcNow,
-            IsRead = false
-        };
-
-        _dbContext.Notifications.Add(notification);
-        await _dbContext.SaveChangesAsync();
-
-        var response = new NotificationResponse
-        {
-            NotificationId = notification.NotificationId,
-            RecipientUserId = notification.RecipientUserId,
-            SenderUserId = notification.SenderUserId,
-            Type = notification.Type,
-            Content = notification.Content,
-            CreatedAt = notification.CreatedAt,
-            IsRead = notification.IsRead
-        };
-
-        return CreatedResponse(response);
+        var result = await _notificationsService.CreateNotificationAsync(request, HttpContext.RequestAborted);
+        return FromServiceResult(result, created: true);
     }
 
     /// <summary>Mark a notification as read.</summary>
@@ -123,29 +69,8 @@ public class NotificationsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MarkAsRead(string notificationId)
     {
-        var notification = await _dbContext.Notifications
-            .FirstOrDefaultAsync(entity => entity.NotificationId == notificationId);
-
-        if (notification == null)
-        {
-            return NotFoundResponse("Notification not found.");
-        }
-
-        notification.IsRead = true;
-        await _dbContext.SaveChangesAsync();
-
-        var response = new NotificationResponse
-        {
-            NotificationId = notification.NotificationId,
-            RecipientUserId = notification.RecipientUserId,
-            SenderUserId = notification.SenderUserId,
-            Type = notification.Type,
-            Content = notification.Content,
-            CreatedAt = notification.CreatedAt,
-            IsRead = notification.IsRead
-        };
-
-        return OkResponse(response);
+        var result = await _notificationsService.MarkAsReadAsync(notificationId, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 
     /// <summary>Delete a notification.</summary>
@@ -154,17 +79,12 @@ public class NotificationsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteNotification(string notificationId)
     {
-        var notification = await _dbContext.Notifications
-            .FirstOrDefaultAsync(entity => entity.NotificationId == notificationId);
-
-        if (notification == null)
+        var result = await _notificationsService.DeleteNotificationAsync(notificationId, HttpContext.RequestAborted);
+        if (!result.Success)
         {
-            return NotFoundResponse("Notification not found.");
+            return FromServiceResult(result);
         }
 
-        _dbContext.Notifications.Remove(notification);
-        await _dbContext.SaveChangesAsync();
-
-        return OkResponse(new { message = "Notification deleted." });
+        return OkResponse(new { message = result.Data });
     }
 }

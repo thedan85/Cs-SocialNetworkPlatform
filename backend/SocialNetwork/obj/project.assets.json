@@ -3052,19 +3052,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\ACER\\.nuget\\packages\\": {}
+    "C:\\Users\\phat\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Coding_Project\\C#\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj",
+      "projectUniqueName": "D:\\Coding\\Phieu\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj",
       "projectName": "SocialNetwork",
-      "projectPath": "D:\\Coding_Project\\C#\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj",
-      "packagesPath": "C:\\Users\\ACER\\.nuget\\packages\\",
-      "outputPath": "D:\\Coding_Project\\C#\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\obj\\",
+      "projectPath": "D:\\Coding\\Phieu\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\SocialNetwork.csproj",
+      "packagesPath": "C:\\Users\\phat\\.nuget\\packages\\",
+      "outputPath": "D:\\Coding\\Phieu\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\ACER\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\phat\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
@@ -3569,5 +3569,13 @@
         }
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "Undefined",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Problem reading the cache file D:\\Coding\\Phieu\\Cs-SocialNetworkPlatform\\backend\\SocialNetwork\\obj\\project.nuget.cache : '<' is an invalid start of a property name. Expected a '\"'. Path: $ | LineNumber: 2 | BytePositionInLine: 0."
+    }
+  ]
 }

@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SocialNetwork.Data;
 using SocialNetwork.Dtos;
-using SocialNetwork.Model;
+using SocialNetwork.Service;
 
 namespace SocialNetwork.Controller;
 
@@ -12,11 +10,11 @@ namespace SocialNetwork.Controller;
 [Authorize]
 public class FriendsController : ApiControllerBase
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IFriendsService _friendsService;
 
-    public FriendsController(ApplicationDbContext dbContext)
+    public FriendsController(IFriendsService friendsService)
     {
-        _dbContext = dbContext;
+        _friendsService = friendsService;
     }
 
     /// <summary>Send a friend request.</summary>
@@ -36,49 +34,8 @@ public class FriendsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateFriendRequest([FromBody] FriendRequestCreateRequest request)
     {
-        if (request.RequesterUserId == request.AddresseeUserId)
-        {
-            return BadRequestResponse("You cannot friend yourself.");
-        }
-
-        var requesterExists = await _dbContext.Users.AnyAsync(user => user.Id == request.RequesterUserId);
-        var addresseeExists = await _dbContext.Users.AnyAsync(user => user.Id == request.AddresseeUserId);
-        if (!requesterExists || !addresseeExists)
-        {
-            return NotFoundResponse("One or more users were not found.");
-        }
-
-        var existingRequest = await _dbContext.Friendships.AnyAsync(friendship =>
-            (friendship.UserId1 == request.RequesterUserId && friendship.UserId2 == request.AddresseeUserId)
-            || (friendship.UserId1 == request.AddresseeUserId && friendship.UserId2 == request.RequesterUserId));
-
-        if (existingRequest)
-        {
-            return BadRequestResponse("A friend request already exists between these users.");
-        }
-
-        var friendship = new Friendship
-        {
-            UserId1 = request.RequesterUserId,
-            UserId2 = request.AddresseeUserId,
-            Status = "Pending",
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _dbContext.Friendships.Add(friendship);
-        await _dbContext.SaveChangesAsync();
-
-        var response = new FriendshipResponse
-        {
-            FriendshipId = friendship.FriendshipId,
-            UserId1 = friendship.UserId1,
-            UserId2 = friendship.UserId2,
-            Status = friendship.Status,
-            CreatedAt = friendship.CreatedAt,
-            UpdatedAt = friendship.UpdatedAt
-        };
-
-        return CreatedResponse(response);
+        var result = await _friendsService.CreateFriendRequestAsync(request, HttpContext.RequestAborted);
+        return FromServiceResult(result, created: true);
     }
 
     /// <summary>Accept a friend request.</summary>
@@ -88,33 +45,8 @@ public class FriendsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AcceptFriendRequest(string friendshipId)
     {
-        var friendship = await _dbContext.Friendships.FirstOrDefaultAsync(entity => entity.FriendshipId == friendshipId);
-        if (friendship == null)
-        {
-            return NotFoundResponse("Friend request not found.");
-        }
-
-        if (!string.Equals(friendship.Status, "Pending", StringComparison.OrdinalIgnoreCase))
-        {
-            return BadRequestResponse("Only pending requests can be accepted.");
-        }
-
-        friendship.Status = "Accepted";
-        friendship.UpdatedAt = DateTime.UtcNow;
-
-        await _dbContext.SaveChangesAsync();
-
-        var response = new FriendshipResponse
-        {
-            FriendshipId = friendship.FriendshipId,
-            UserId1 = friendship.UserId1,
-            UserId2 = friendship.UserId2,
-            Status = friendship.Status,
-            CreatedAt = friendship.CreatedAt,
-            UpdatedAt = friendship.UpdatedAt
-        };
-
-        return OkResponse(response);
+        var result = await _friendsService.AcceptFriendRequestAsync(friendshipId, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 
     /// <summary>Reject a friend request.</summary>
@@ -124,75 +56,31 @@ public class FriendsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RejectFriendRequest(string friendshipId)
     {
-        var friendship = await _dbContext.Friendships.FirstOrDefaultAsync(entity => entity.FriendshipId == friendshipId);
-        if (friendship == null)
-        {
-            return NotFoundResponse("Friend request not found.");
-        }
-
-        if (!string.Equals(friendship.Status, "Pending", StringComparison.OrdinalIgnoreCase))
-        {
-            return BadRequestResponse("Only pending requests can be rejected.");
-        }
-
-        friendship.Status = "Rejected";
-        friendship.UpdatedAt = DateTime.UtcNow;
-
-        await _dbContext.SaveChangesAsync();
-
-        var response = new FriendshipResponse
-        {
-            FriendshipId = friendship.FriendshipId,
-            UserId1 = friendship.UserId1,
-            UserId2 = friendship.UserId2,
-            Status = friendship.Status,
-            CreatedAt = friendship.CreatedAt,
-            UpdatedAt = friendship.UpdatedAt
-        };
-
-        return OkResponse(response);
+        var result = await _friendsService.RejectFriendRequestAsync(friendshipId, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 
     /// <summary>Get accepted friends for a user.</summary>
     [HttpGet("{userId}")]
     [ProducesResponseType(typeof(ApiResponse<List<FriendshipResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetFriends(string userId)
+    public async Task<IActionResult> GetFriends(
+        string userId,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 50)
     {
-        var friends = await _dbContext.Friendships.AsNoTracking()
-            .Where(friendship => (friendship.UserId1 == userId || friendship.UserId2 == userId)
-                && friendship.Status == "Accepted")
-            .Select(friendship => new FriendshipResponse
-            {
-                FriendshipId = friendship.FriendshipId,
-                UserId1 = friendship.UserId1,
-                UserId2 = friendship.UserId2,
-                Status = friendship.Status,
-                CreatedAt = friendship.CreatedAt,
-                UpdatedAt = friendship.UpdatedAt
-            })
-            .ToListAsync();
-
-        return OkResponse(friends);
+        var result = await _friendsService.GetFriendsAsync(userId, pageNumber, pageSize, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 
     /// <summary>Get pending friend requests for a user.</summary>
     [HttpGet("requests/{userId}")]
     [ProducesResponseType(typeof(ApiResponse<List<FriendshipResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetPendingRequests(string userId)
+    public async Task<IActionResult> GetPendingRequests(
+        string userId,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 50)
     {
-        var requests = await _dbContext.Friendships.AsNoTracking()
-            .Where(friendship => friendship.UserId2 == userId && friendship.Status == "Pending")
-            .Select(friendship => new FriendshipResponse
-            {
-                FriendshipId = friendship.FriendshipId,
-                UserId1 = friendship.UserId1,
-                UserId2 = friendship.UserId2,
-                Status = friendship.Status,
-                CreatedAt = friendship.CreatedAt,
-                UpdatedAt = friendship.UpdatedAt
-            })
-            .ToListAsync();
-
-        return OkResponse(requests);
+        var result = await _friendsService.GetPendingRequestsAsync(userId, pageNumber, pageSize, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 }

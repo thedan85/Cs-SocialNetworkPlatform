@@ -132,6 +132,17 @@ builder.Services.AddScoped<IPostRepository, PostRepository>();
 builder.Services.AddScoped<IFriendshipRepository, FriendshipRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IPostReportRepository, PostReportRepository>();
+builder.Services.AddScoped<IStoryRepository, StoryRepository>();
+
+builder.Services.AddScoped<IUsersService, UsersService>();
+builder.Services.AddScoped<IPostsService, PostsService>();
+builder.Services.AddScoped<IFriendsService, FriendsService>();
+builder.Services.AddScoped<INotificationsService, NotificationsService>();
+builder.Services.AddScoped<IStoriesService, StoriesService>();
+
+builder.Services.Configure<AzureBlobStorageOptions>(
+    builder.Configuration.GetSection(AzureBlobStorageOptions.SectionName));
+builder.Services.AddScoped<IFileStorageService, AzureBlobStorageService>();
 
 var app = builder.Build();
 

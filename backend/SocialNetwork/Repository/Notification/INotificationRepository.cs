@@ -23,4 +23,6 @@ public interface INotificationRepository
     Task<bool> MarkAsReadAsync(string notificationId, CancellationToken ct = default);
 
     Task<int> MarkAllAsReadAsync(string recipientUserId, CancellationToken ct = default);
+
+    Task<bool> DeleteAsync(string notificationId, CancellationToken ct = default);
 }

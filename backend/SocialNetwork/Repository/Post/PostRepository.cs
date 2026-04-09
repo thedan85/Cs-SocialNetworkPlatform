@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SocialNetwork.Data;
+using SocialNetwork.Extensions;
 using SocialNetwork.Model;
 
 namespace SocialNetwork.Repository;
@@ -30,8 +31,7 @@ public class PostRepository : IPostRepository
             .AsNoTracking()
             .Where(p => p.UserId == userId)
             .OrderByDescending(p => p.CreatedAt)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
+            .ApplyPaging(pageNumber, pageSize)
             .ToListAsync(ct);
 
         return posts;
@@ -50,28 +50,25 @@ public class PostRepository : IPostRepository
 
     public async Task UpdateAsync(Post post, CancellationToken ct = default)
     {
-        var existingPost = await _dbContext.Posts.FirstOrDefaultAsync(p => p.PostId == post.PostId, ct);
-        if (existingPost is null)
+        var affectedRows = await _dbContext.Posts
+            .Where(p => p.PostId == post.PostId)
+            .ExecuteUpdateAsync(
+                setter => setter
+                    .SetProperty(p => p.Content, post.Content)
+                    .SetProperty(p => p.ImageUrl, post.ImageUrl)
+                    .SetProperty(p => p.UpdatedAt, DateTime.UtcNow),
+                ct);
+
+        if (affectedRows == 0)
         {
             throw new KeyNotFoundException($"Post with id '{post.PostId}' was not found.");
         }
-
-        existingPost.Content = post.Content;
-        existingPost.ImageUrl = post.ImageUrl;
-        existingPost.UpdatedAt = DateTime.UtcNow;
-
-        await _dbContext.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(string postId, CancellationToken ct = default)
     {
-        var existingPost = await _dbContext.Posts.FirstOrDefaultAsync(p => p.PostId == postId, ct);
-        if (existingPost is null)
-        {
-            return;
-        }
-
-        _dbContext.Posts.Remove(existingPost);
-        await _dbContext.SaveChangesAsync(ct);
+        await _dbContext.Posts
+            .Where(p => p.PostId == postId)
+            .ExecuteDeleteAsync(ct);
     }
 }

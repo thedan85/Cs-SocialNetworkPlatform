@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SocialNetwork.Data;
+using SocialNetwork.Extensions;
 using SocialNetwork.Model;
 
 namespace SocialNetwork.Repository;
@@ -48,8 +49,7 @@ public class FriendshipRepository : IFriendshipRepository
             .AsNoTracking()
             .Where(f => f.UserId2 == userId && f.Status == "Pending")
             .OrderByDescending(f => f.CreatedAt)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
+            .ApplyPaging(pageNumber, pageSize, defaultPageSize: 50)
             .ToListAsync(ct);
 
         return friendships;
@@ -65,8 +65,7 @@ public class FriendshipRepository : IFriendshipRepository
             .AsNoTracking()
             .Where(f => f.Status == "Accepted" && (f.UserId1 == userId || f.UserId2 == userId))
             .OrderByDescending(f => f.UpdatedAt ?? f.CreatedAt)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
+            .ApplyPaging(pageNumber, pageSize, defaultPageSize: 50)
             .ToListAsync(ct);
 
         return friendships;
@@ -80,28 +79,21 @@ public class FriendshipRepository : IFriendshipRepository
 
     public async Task<bool> UpdateStatusAsync(string friendshipId, string status, CancellationToken ct = default)
     {
-        var friendship = await _dbContext.Friendships.FirstOrDefaultAsync(f => f.FriendshipId == friendshipId, ct);
-        if (friendship is null)
-        {
-            return false;
-        }
+        var affectedRows = await _dbContext.Friendships
+            .Where(f => f.FriendshipId == friendshipId)
+            .ExecuteUpdateAsync(
+                setter => setter
+                    .SetProperty(f => f.Status, status)
+                    .SetProperty(f => f.UpdatedAt, DateTime.UtcNow),
+                ct);
 
-        friendship.Status = status;
-        friendship.UpdatedAt = DateTime.UtcNow;
-
-        await _dbContext.SaveChangesAsync(ct);
-        return true;
+        return affectedRows > 0;
     }
 
     public async Task DeleteAsync(string friendshipId, CancellationToken ct = default)
     {
-        var friendship = await _dbContext.Friendships.FirstOrDefaultAsync(f => f.FriendshipId == friendshipId, ct);
-        if (friendship is null)
-        {
-            return;
-        }
-
-        _dbContext.Friendships.Remove(friendship);
-        await _dbContext.SaveChangesAsync(ct);
+        await _dbContext.Friendships
+            .Where(f => f.FriendshipId == friendshipId)
+            .ExecuteDeleteAsync(ct);
     }
 }

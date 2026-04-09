@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SocialNetwork.Data;
 using SocialNetwork.Dtos;
-using SocialNetwork.Model;
+using SocialNetwork.Service;
 
 namespace SocialNetwork.Controller;
 
@@ -12,33 +10,20 @@ namespace SocialNetwork.Controller;
 [Authorize]
 public class StoriesController : ApiControllerBase
 {
-    private readonly ApplicationDbContext _dbContext;
+    private readonly IStoriesService _storiesService;
 
-    public StoriesController(ApplicationDbContext dbContext)
+    public StoriesController(IStoriesService storiesService)
     {
-        _dbContext = dbContext;
+        _storiesService = storiesService;
     }
 
     /// <summary>Get active stories.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<List<StoryResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetStories()
+    public async Task<IActionResult> GetStories([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50)
     {
-        var stories = await _dbContext.Stories.AsNoTracking()
-            .Where(story => story.ExpiresAt > DateTime.UtcNow)
-            .OrderByDescending(story => story.CreatedAt)
-            .Select(story => new StoryResponse
-            {
-                StoryId = story.StoryId,
-                UserId = story.UserId,
-                Content = story.Content,
-                ImageUrl = story.ImageUrl,
-                CreatedAt = story.CreatedAt,
-                ExpiresAt = story.ExpiresAt
-            })
-            .ToListAsync();
-
-        return OkResponse(stories);
+        var result = await _storiesService.GetStoriesAsync(pageNumber, pageSize, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 
     /// <summary>Get a story by id.</summary>
@@ -47,47 +32,20 @@ public class StoriesController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetStoryById(string storyId)
     {
-        var story = await _dbContext.Stories.AsNoTracking()
-            .FirstOrDefaultAsync(entity => entity.StoryId == storyId);
-
-        if (story == null)
-        {
-            return NotFoundResponse("Story not found.");
-        }
-
-        var response = new StoryResponse
-        {
-            StoryId = story.StoryId,
-            UserId = story.UserId,
-            Content = story.Content,
-            ImageUrl = story.ImageUrl,
-            CreatedAt = story.CreatedAt,
-            ExpiresAt = story.ExpiresAt
-        };
-
-        return OkResponse(response);
+        var result = await _storiesService.GetStoryByIdAsync(storyId, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 
     /// <summary>Get stories for a user.</summary>
     [HttpGet("user/{userId}")]
     [ProducesResponseType(typeof(ApiResponse<List<StoryResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetStoriesForUser(string userId)
+    public async Task<IActionResult> GetStoriesForUser(
+        string userId,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 50)
     {
-        var stories = await _dbContext.Stories.AsNoTracking()
-            .Where(story => story.UserId == userId && story.ExpiresAt > DateTime.UtcNow)
-            .OrderByDescending(story => story.CreatedAt)
-            .Select(story => new StoryResponse
-            {
-                StoryId = story.StoryId,
-                UserId = story.UserId,
-                Content = story.Content,
-                ImageUrl = story.ImageUrl,
-                CreatedAt = story.CreatedAt,
-                ExpiresAt = story.ExpiresAt
-            })
-            .ToListAsync();
-
-        return OkResponse(stories);
+        var result = await _storiesService.GetStoriesForUserAsync(userId, pageNumber, pageSize, HttpContext.RequestAborted);
+        return FromServiceResult(result);
     }
 
     /// <summary>Create a new story.</summary>
@@ -108,37 +66,8 @@ public class StoriesController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateStory([FromBody] StoryCreateRequest request)
     {
-        var userExists = await _dbContext.Users.AnyAsync(user => user.Id == request.UserId);
-        if (!userExists)
-        {
-            return NotFoundResponse("User not found.");
-        }
-
-        var expiresAt = request.ExpiresAt ?? DateTime.UtcNow.AddHours(24);
-
-        var story = new Story
-        {
-            UserId = request.UserId,
-            Content = request.Content,
-            ImageUrl = request.ImageUrl,
-            CreatedAt = DateTime.UtcNow,
-            ExpiresAt = expiresAt
-        };
-
-        _dbContext.Stories.Add(story);
-        await _dbContext.SaveChangesAsync();
-
-        var response = new StoryResponse
-        {
-            StoryId = story.StoryId,
-            UserId = story.UserId,
-            Content = story.Content,
-            ImageUrl = story.ImageUrl,
-            CreatedAt = story.CreatedAt,
-            ExpiresAt = story.ExpiresAt
-        };
-
-        return CreatedResponse(response);
+        var result = await _storiesService.CreateStoryAsync(request, HttpContext.RequestAborted);
+        return FromServiceResult(result, created: true);
     }
 
     /// <summary>Delete a story.</summary>
@@ -147,15 +76,12 @@ public class StoriesController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteStory(string storyId)
     {
-        var story = await _dbContext.Stories.FirstOrDefaultAsync(entity => entity.StoryId == storyId);
-        if (story == null)
+        var result = await _storiesService.DeleteStoryAsync(storyId, HttpContext.RequestAborted);
+        if (!result.Success)
         {
-            return NotFoundResponse("Story not found.");
+            return FromServiceResult(result);
         }
 
-        _dbContext.Stories.Remove(story);
-        await _dbContext.SaveChangesAsync();
-
-        return OkResponse(new { message = "Story deleted." });
+        return OkResponse(new { message = result.Data });
     }
 }

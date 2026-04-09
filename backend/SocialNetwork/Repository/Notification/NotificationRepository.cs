@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SocialNetwork.Data;
+using SocialNetwork.Extensions;
 using SocialNetwork.Model;
 
 namespace SocialNetwork.Repository;
@@ -38,8 +39,7 @@ public class NotificationRepository : INotificationRepository
 
         var notifications = await query
             .OrderByDescending(n => n.CreatedAt)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
+            .ApplyPaging(pageNumber, pageSize, defaultPageSize: 50)
             .ToListAsync(ct);
 
         return notifications;
@@ -68,40 +68,37 @@ public class NotificationRepository : INotificationRepository
 
     public async Task<bool> MarkAsReadAsync(string notificationId, CancellationToken ct = default)
     {
-        var notification = await _dbContext.Notifications
-            .FirstOrDefaultAsync(n => n.NotificationId == notificationId, ct);
-        if (notification is null)
-        {
-            return false;
-        }
+        var affectedRows = await _dbContext.Notifications
+            .Where(n => n.NotificationId == notificationId && !n.IsRead)
+            .ExecuteUpdateAsync(
+                setter => setter.SetProperty(n => n.IsRead, true),
+                ct);
 
-        if (notification.IsRead)
+        if (affectedRows > 0)
         {
             return true;
         }
 
-        notification.IsRead = true;
-        await _dbContext.SaveChangesAsync(ct);
-        return true;
+        return await _dbContext.Notifications
+            .AsNoTracking()
+            .AnyAsync(n => n.NotificationId == notificationId, ct);
     }
 
     public async Task<int> MarkAllAsReadAsync(string recipientUserId, CancellationToken ct = default)
     {
-        var unreadNotifications = await _dbContext.Notifications
+        return await _dbContext.Notifications
             .Where(n => n.RecipientUserId == recipientUserId && !n.IsRead)
-            .ToListAsync(ct);
+            .ExecuteUpdateAsync(
+                setter => setter.SetProperty(n => n.IsRead, true),
+                ct);
+    }
 
-        if (unreadNotifications.Count == 0)
-        {
-            return 0;
-        }
+    public async Task<bool> DeleteAsync(string notificationId, CancellationToken ct = default)
+    {
+        var affectedRows = await _dbContext.Notifications
+            .Where(entity => entity.NotificationId == notificationId)
+            .ExecuteDeleteAsync(ct);
 
-        foreach (var notification in unreadNotifications)
-        {
-            notification.IsRead = true;
-        }
-
-        await _dbContext.SaveChangesAsync(ct);
-        return unreadNotifications.Count;
+        return affectedRows > 0;
     }
 }

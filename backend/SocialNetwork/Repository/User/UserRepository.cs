@@ -55,30 +55,34 @@ public class UserRepository : IUserRepository
         string? profilePicture,
         CancellationToken ct = default)
     {
-        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
-        if (user is null)
+        var affectedRows = await _dbContext.Users
+            .Where(u => u.Id == userId)
+            .ExecuteUpdateAsync(
+                setter => setter
+                    .SetProperty(u => u.Bio, bio)
+                    .SetProperty(u => u.ProfilePicture, profilePicture)
+                    .SetProperty(u => u.UpdatedAt, DateTime.UtcNow),
+                ct);
+
+        if (affectedRows == 0)
         {
             throw new KeyNotFoundException($"User with id '{userId}' was not found.");
         }
-
-        user.Bio = bio;
-        user.ProfilePicture = profilePicture;
-        user.UpdatedAt = DateTime.UtcNow;
-
-        await _dbContext.SaveChangesAsync(ct);
     }
 
     public async Task SetActiveStatusAsync(string userId, bool isActive, CancellationToken ct = default)
     {
-        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
-        if (user is null)
+        var affectedRows = await _dbContext.Users
+            .Where(u => u.Id == userId)
+            .ExecuteUpdateAsync(
+                setter => setter
+                    .SetProperty(u => u.IsActive, isActive)
+                    .SetProperty(u => u.UpdatedAt, DateTime.UtcNow),
+                ct);
+
+        if (affectedRows == 0)
         {
             throw new KeyNotFoundException($"User with id '{userId}' was not found.");
         }
-
-        user.IsActive = isActive;
-        user.UpdatedAt = DateTime.UtcNow;
-
-        await _dbContext.SaveChangesAsync(ct);
     }
 }
