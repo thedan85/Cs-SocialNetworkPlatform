@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -83,17 +82,5 @@ public class UsersController : ApiControllerBase
 
         var result = await _usersService.GetUserPostsAsync(userId, HttpContext.RequestAborted);
         return FromServiceResult(result);
-    }
-
-    private bool IsCurrentUserOrAdmin(string userId)
-    {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrWhiteSpace(currentUserId))
-        {
-            return false;
-        }
-
-        return User.IsInRole("Admin")
-            || string.Equals(currentUserId, userId, StringComparison.OrdinalIgnoreCase);
     }
 }

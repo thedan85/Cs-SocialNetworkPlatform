@@ -35,6 +35,11 @@ public class PostRepository : IPostRepository
             .FirstOrDefaultAsync(p => p.PostId == postId, ct);
     }
 
+    public Task<bool> ExistsByIdAsync(string postId, CancellationToken ct = default)
+    {
+        return _dbContext.Posts.AnyAsync(p => p.PostId == postId, ct);
+    }
+
     public async Task<IReadOnlyList<Post>> GetByUserIdOrderedAsync(string userId, CancellationToken ct = default)
     {
         var posts = await _dbContext.Posts
@@ -65,6 +70,17 @@ public class PostRepository : IPostRepository
     public Task<int> CountByUserIdAsync(string userId, CancellationToken ct = default)
     {
         return _dbContext.Posts.CountAsync(p => p.UserId == userId, ct);
+    }
+
+    public async Task<bool> IncrementLikeCountAsync(string postId, int delta, CancellationToken ct = default)
+    {
+        var affectedRows = await _dbContext.Posts
+            .Where(p => p.PostId == postId)
+            .ExecuteUpdateAsync(
+                setter => setter.SetProperty(p => p.LikeCount, p => p.LikeCount + delta),
+                ct);
+
+        return affectedRows > 0;
     }
 
     public async Task AddAsync(Post post, CancellationToken ct = default)

@@ -17,6 +17,9 @@ public interface IStoriesService
         int pageSize = 50,
         CancellationToken ct = default);
 
-    Task<ServiceResult<StoryResponse>> CreateStoryAsync(StoryCreateRequest request, CancellationToken ct = default);
+    Task<ServiceResult<StoryResponse>> CreateStoryAsync(
+        string actorUserId,
+        StoryCreateRequest request,
+        CancellationToken ct = default);
     Task<ServiceResult<string>> DeleteStoryAsync(string storyId, CancellationToken ct = default);
 }

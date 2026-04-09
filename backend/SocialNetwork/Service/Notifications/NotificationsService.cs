@@ -71,10 +71,11 @@ public class NotificationsService : INotificationsService
     }
 
     public async Task<ServiceResult<NotificationResponse>> CreateNotificationAsync(
+        string senderUserId,
         NotificationCreateRequest request,
         CancellationToken ct = default)
     {
-        if (string.Equals(request.RecipientUserId, request.SenderUserId, StringComparison.Ordinal))
+        if (string.Equals(request.RecipientUserId, senderUserId, StringComparison.Ordinal))
         {
             return ServiceResult<NotificationResponse>.Fail(
                 ServiceErrorType.Validation,
@@ -82,7 +83,7 @@ public class NotificationsService : INotificationsService
         }
 
         var recipientExists = await _userRepository.ExistsByIdAsync(request.RecipientUserId, ct);
-        var senderExists = await _userRepository.ExistsByIdAsync(request.SenderUserId, ct);
+        var senderExists = await _userRepository.ExistsByIdAsync(senderUserId, ct);
         if (!recipientExists || !senderExists)
         {
             return ServiceResult<NotificationResponse>.Fail(ServiceErrorType.NotFound, "Recipient or sender was not found.");
@@ -93,7 +94,7 @@ public class NotificationsService : INotificationsService
         var notification = new Notification
         {
             RecipientUserId = request.RecipientUserId,
-            SenderUserId = request.SenderUserId,
+            SenderUserId = senderUserId,
             Type = request.Type,
             Content = request.Content,
             CreatedAt = now,

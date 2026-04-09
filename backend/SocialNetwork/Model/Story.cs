@@ -16,4 +16,5 @@ public class Story
     
     // Navigation property
     public virtual User? User { get; set; }
+    public ICollection<Like> Likes { get; set; } = new List<Like>();
 }

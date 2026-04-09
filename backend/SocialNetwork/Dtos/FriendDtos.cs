@@ -5,7 +5,6 @@ namespace SocialNetwork.Dtos;
 
 public class FriendRequestCreateRequest
 {
-    [Required]
     [StringLength(128)]
     public string RequesterUserId { get; set; } = string.Empty;
 

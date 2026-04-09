@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using SocialNetwork.Dtos;
 using SocialNetwork.Service;
@@ -76,5 +77,22 @@ public abstract class ApiControllerBase : ControllerBase
             ServiceErrorType.Unauthorized => UnauthorizedResponse(sanitizedErrors[0]),
             _ => BadRequestResponse(sanitizedErrors)
         };
+    }
+
+    protected string? GetCurrentUserId()
+    {
+        return User.FindFirstValue(ClaimTypes.NameIdentifier);
+    }
+
+    protected bool IsCurrentUserOrAdmin(string userId)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return false;
+        }
+
+        return User.IsInRole("Admin")
+            || string.Equals(currentUserId, userId, StringComparison.OrdinalIgnoreCase);
     }
 }

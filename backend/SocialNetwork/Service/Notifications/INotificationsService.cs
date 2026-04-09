@@ -16,7 +16,10 @@ public interface INotificationsService
         int pageSize = 50,
         CancellationToken ct = default);
 
-    Task<ServiceResult<NotificationResponse>> CreateNotificationAsync(NotificationCreateRequest request, CancellationToken ct = default);
+    Task<ServiceResult<NotificationResponse>> CreateNotificationAsync(
+        string senderUserId,
+        NotificationCreateRequest request,
+        CancellationToken ct = default);
     Task<ServiceResult<NotificationResponse>> MarkAsReadAsync(string notificationId, CancellationToken ct = default);
     Task<ServiceResult<string>> DeleteNotificationAsync(string notificationId, CancellationToken ct = default);
 }

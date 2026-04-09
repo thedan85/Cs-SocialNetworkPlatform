@@ -9,7 +9,6 @@ public class NotificationCreateRequest
     [StringLength(128)]
     public string RecipientUserId { get; set; } = string.Empty;
 
-    [Required]
     [StringLength(128)]
     public string SenderUserId { get; set; } = string.Empty;
 

@@ -23,7 +23,6 @@ public class FriendsController : ApiControllerBase
     /// <code>
     /// POST /api/friends/requests
     /// {
-    ///   "requesterUserId": "user-123",
     ///   "addresseeUserId": "user-456"
     /// }
     /// </code>
@@ -34,7 +33,13 @@ public class FriendsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateFriendRequest([FromBody] FriendRequestCreateRequest request)
     {
-        var result = await _friendsService.CreateFriendRequestAsync(request, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User identity is missing.");
+        }
+
+        var result = await _friendsService.CreateFriendRequestAsync(currentUserId, request, HttpContext.RequestAborted);
         return FromServiceResult(result, created: true);
     }
 
@@ -68,6 +73,11 @@ public class FriendsController : ApiControllerBase
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 50)
     {
+        if (!IsCurrentUserOrAdmin(userId))
+        {
+            return UnauthorizedResponse("You are not allowed to access these friends.");
+        }
+
         var result = await _friendsService.GetFriendsAsync(userId, pageNumber, pageSize, HttpContext.RequestAborted);
         return FromServiceResult(result);
     }
@@ -80,6 +90,11 @@ public class FriendsController : ApiControllerBase
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 50)
     {
+        if (!IsCurrentUserOrAdmin(userId))
+        {
+            return UnauthorizedResponse("You are not allowed to access these requests.");
+        }
+
         var result = await _friendsService.GetPendingRequestsAsync(userId, pageNumber, pageSize, HttpContext.RequestAborted);
         return FromServiceResult(result);
     }

@@ -5,7 +5,6 @@ namespace SocialNetwork.Dtos;
 
 public class PostReportCreateRequest
 {
-    [Required]
     [StringLength(128)]
     public string ReporterUserId { get; set; } = string.Empty;
 

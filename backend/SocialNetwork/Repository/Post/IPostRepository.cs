@@ -11,6 +11,8 @@ public interface IPostRepository
 
     Task<Post?> GetByIdAsync(string postId, CancellationToken ct = default);
 
+    Task<bool> ExistsByIdAsync(string postId, CancellationToken ct = default);
+
     Task<IReadOnlyList<Post>> GetByUserIdOrderedAsync(string userId, CancellationToken ct = default);
 
     Task<IReadOnlyList<Post>> GetByUserIdAsync(
@@ -20,6 +22,8 @@ public interface IPostRepository
         CancellationToken ct = default);
 
     Task<int> CountByUserIdAsync(string userId, CancellationToken ct = default);
+
+    Task<bool> IncrementLikeCountAsync(string postId, int delta, CancellationToken ct = default);
 
     Task AddAsync(Post post, CancellationToken ct = default);
 

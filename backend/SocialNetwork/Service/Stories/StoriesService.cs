@@ -61,10 +61,11 @@ public class StoriesService : IStoriesService
     }
 
     public async Task<ServiceResult<StoryResponse>> CreateStoryAsync(
+        string actorUserId,
         StoryCreateRequest request,
         CancellationToken ct = default)
     {
-        var userExists = await _userRepository.ExistsByIdAsync(request.UserId, ct);
+        var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
         if (!userExists)
         {
             return ServiceResult<StoryResponse>.Fail(ServiceErrorType.NotFound, "User not found.");
@@ -79,7 +80,7 @@ public class StoriesService : IStoriesService
 
         var story = new Story
         {
-            UserId = request.UserId,
+            UserId = actorUserId,
             Content = request.Content,
             ImageUrl = request.ImageUrl,
             CreatedAt = DateTime.UtcNow,

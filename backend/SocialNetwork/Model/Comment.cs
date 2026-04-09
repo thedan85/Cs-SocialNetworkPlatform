@@ -19,4 +19,5 @@ public class Comment
     // Navigation properties
     public virtual Post? Post { get; set; }
     public virtual User? User { get; set; }
+    public ICollection<Like> Likes { get; set; } = new List<Like>();
 }

@@ -87,6 +87,16 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .WithMany(u => u.Posts)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Comments)
+                .WithOne(e => e.Post)
+                .HasForeignKey(e => e.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Likes)
+                .WithOne(e => e.Post)
+                .HasForeignKey(e => e.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Configure Hashtag entity
@@ -135,12 +145,12 @@ public class ApplicationDbContext : IdentityDbContext<User>
 
             // Foreign key relationships
             entity.HasOne(e => e.Post)
-                .WithMany()
+                .WithMany(p => p.PostHashtags)
                 .HasForeignKey(e => e.PostId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.Hashtag)
-                .WithMany()
+                .WithMany(h => h.PostHashtags)
                 .HasForeignKey(e => e.HashtagId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -178,11 +188,6 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)");
 
             // Foreign key relationships
-            entity.HasOne(e => e.Post)
-                .WithMany()
-                .HasForeignKey(e => e.PostId)
-                .OnDelete(DeleteBehavior.Cascade);
-
             entity.HasOne(e => e.User)
                 .WithMany(u => u.Comments)
                 .HasForeignKey(e => e.UserId)
@@ -261,18 +266,13 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(e => e.Post)
-                .WithMany()
-                .HasForeignKey(e => e.PostId)
-                .OnDelete(DeleteBehavior.Cascade);
-
             entity.HasOne(e => e.Comment)
-                .WithMany()
+                .WithMany(c => c.Likes)
                 .HasForeignKey(e => e.CommentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.Story)
-                .WithMany()
+                .WithMany(s => s.Likes)
                 .HasForeignKey(e => e.StoryId)
                 .OnDelete(DeleteBehavior.Cascade);
         }); 

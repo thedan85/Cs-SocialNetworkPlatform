@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using SocialNetwork.Data;
 using SocialNetwork.Dtos;
 using SocialNetwork.Extensions;
 using SocialNetwork.Model;
@@ -9,24 +7,27 @@ namespace SocialNetwork.Service;
 
 public class PostsService : IPostsService
 {
-    private readonly ApplicationDbContext _dbContext;
     private readonly IPostRepository _postRepository;
     private readonly ICommentRepository _commentRepository;
+    private readonly ILikeRepository _likeRepository;
     private readonly IUserRepository _userRepository;
     private readonly IPostReportRepository _postReportRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public PostsService(
-        ApplicationDbContext dbContext,
         IPostRepository postRepository,
         ICommentRepository commentRepository,
+        ILikeRepository likeRepository,
         IUserRepository userRepository,
-        IPostReportRepository postReportRepository)
+        IPostReportRepository postReportRepository,
+        IUnitOfWork unitOfWork)
     {
-        _dbContext = dbContext;
         _postRepository = postRepository;
         _commentRepository = commentRepository;
+        _likeRepository = likeRepository;
         _userRepository = userRepository;
         _postReportRepository = postReportRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<ServiceResult<IReadOnlyList<PostResponse>>> GetPostsAsync(
@@ -54,9 +55,12 @@ public class PostsService : IPostsService
         return ServiceResult<PostResponse>.Ok(post.ToPostResponse());
     }
 
-    public async Task<ServiceResult<PostResponse>> CreatePostAsync(PostCreateRequest request, CancellationToken ct = default)
+    public async Task<ServiceResult<PostResponse>> CreatePostAsync(
+        string actorUserId,
+        PostCreateRequest request,
+        CancellationToken ct = default)
     {
-        var userExists = await _userRepository.ExistsByIdAsync(request.UserId, ct);
+        var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
         if (!userExists)
         {
             return ServiceResult<PostResponse>.Fail(ServiceErrorType.NotFound, "User not found.");
@@ -64,7 +68,7 @@ public class PostsService : IPostsService
 
         var post = new Post
         {
-            UserId = request.UserId,
+            UserId = actorUserId,
             Content = request.Content,
             ImageUrl = request.ImageUrl,
             CreatedAt = DateTime.UtcNow,
@@ -130,6 +134,7 @@ public class PostsService : IPostsService
     }
 
     public async Task<ServiceResult<CommentResponse>> CreateCommentAsync(
+        string actorUserId,
         string postId,
         CommentCreateRequest request,
         CancellationToken ct = default)
@@ -140,7 +145,7 @@ public class PostsService : IPostsService
             return ServiceResult<CommentResponse>.Fail(ServiceErrorType.NotFound, "Post not found.");
         }
 
-        var userExists = await _userRepository.ExistsByIdAsync(request.UserId, ct);
+        var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
         if (!userExists)
         {
             return ServiceResult<CommentResponse>.Fail(ServiceErrorType.NotFound, "User not found.");
@@ -151,7 +156,7 @@ public class PostsService : IPostsService
         var comment = new Comment
         {
             PostId = postId,
-            UserId = request.UserId,
+            UserId = actorUserId,
             Content = request.Content,
             CreatedAt = now,
             UpdatedAt = now
@@ -178,23 +183,22 @@ public class PostsService : IPostsService
     }
 
     public async Task<ServiceResult<LikePostResult>> LikePostAsync(
+        string actorUserId,
         string postId,
         LikeCreateRequest request,
         CancellationToken ct = default)
     {
-        var userExists = await _userRepository.ExistsByIdAsync(request.UserId, ct);
+        var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
         if (!userExists)
         {
             return ServiceResult<LikePostResult>.Fail(ServiceErrorType.NotFound, "User not found.");
         }
 
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(ct);
 
         try
         {
-            var postExists = await _dbContext.Posts
-                .AsNoTracking()
-                .AnyAsync(entity => entity.PostId == postId, ct);
+            var postExists = await _postRepository.ExistsByIdAsync(postId, ct);
 
             if (!postExists)
             {
@@ -202,9 +206,7 @@ public class PostsService : IPostsService
                 return ServiceResult<LikePostResult>.Fail(ServiceErrorType.NotFound, "Post not found.");
             }
 
-            var existingLike = await _dbContext.Likes
-                .AsNoTracking()
-                .FirstOrDefaultAsync(entity => entity.PostId == postId && entity.UserId == request.UserId, ct);
+            var existingLike = await _likeRepository.GetByPostAndUserAsync(postId, actorUserId, ct);
 
             if (existingLike is not null)
             {
@@ -221,20 +223,15 @@ public class PostsService : IPostsService
             var like = new Like
             {
                 PostId = postId,
-                UserId = request.UserId,
+                UserId = actorUserId,
                 CreatedAt = now
             };
 
-            await _dbContext.Likes.AddAsync(like, ct);
-            await _dbContext.SaveChangesAsync(ct);
+            await _likeRepository.AddAsync(like, ct);
 
-            var updatedRows = await _dbContext.Posts
-                .Where(p => p.PostId == postId)
-                .ExecuteUpdateAsync(
-                    setter => setter.SetProperty(p => p.LikeCount, p => p.LikeCount + 1),
-                    ct);
+            var updatedRows = await _postRepository.IncrementLikeCountAsync(postId, 1, ct);
 
-            if (updatedRows == 0)
+            if (!updatedRows)
             {
                 await transaction.RollbackAsync(ct);
                 return ServiceResult<LikePostResult>.Fail(ServiceErrorType.NotFound, "Post not found.");
@@ -256,6 +253,7 @@ public class PostsService : IPostsService
     }
 
     public async Task<ServiceResult<PostReportResponse>> ReportPostAsync(
+        string actorUserId,
         string postId,
         PostReportCreateRequest request,
         CancellationToken ct = default)
@@ -266,7 +264,7 @@ public class PostsService : IPostsService
             return ServiceResult<PostReportResponse>.Fail(ServiceErrorType.NotFound, "Post not found.");
         }
 
-        var userExists = await _userRepository.ExistsByIdAsync(request.ReporterUserId, ct);
+        var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
         if (!userExists)
         {
             return ServiceResult<PostReportResponse>.Fail(ServiceErrorType.NotFound, "User not found.");
@@ -274,7 +272,7 @@ public class PostsService : IPostsService
 
         var existingReport = await _postReportRepository.ExistsByPostAndReporterAsync(
             postId,
-            request.ReporterUserId,
+            actorUserId,
             ct);
 
         if (existingReport)
@@ -287,7 +285,7 @@ public class PostsService : IPostsService
         var postReport = new PostReport
         {
             PostId = postId,
-            ReporterUserId = request.ReporterUserId,
+            ReporterUserId = actorUserId,
             Reason = request.Reason,
             Description = request.Description,
             Status = false,

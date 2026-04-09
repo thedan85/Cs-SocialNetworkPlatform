@@ -25,6 +25,11 @@ public class NotificationsController : ApiControllerBase
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 50)
     {
+        if (!IsCurrentUserOrAdmin(userId))
+        {
+            return UnauthorizedResponse("You are not allowed to access these notifications.");
+        }
+
         var result = await _notificationsService.GetNotificationsAsync(userId, pageNumber, pageSize, HttpContext.RequestAborted);
         return FromServiceResult(result);
     }
@@ -37,6 +42,11 @@ public class NotificationsController : ApiControllerBase
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 50)
     {
+        if (!IsCurrentUserOrAdmin(userId))
+        {
+            return UnauthorizedResponse("You are not allowed to access these notifications.");
+        }
+
         var result = await _notificationsService.GetUnreadNotificationsAsync(userId, pageNumber, pageSize, HttpContext.RequestAborted);
         return FromServiceResult(result);
     }
@@ -48,7 +58,6 @@ public class NotificationsController : ApiControllerBase
     /// POST /api/notifications
     /// {
     ///   "recipientUserId": "user-456",
-    ///   "senderUserId": "user-123",
     ///   "type": "FriendRequest",
     ///   "content": "User 123 sent you a friend request"
     /// }
@@ -59,7 +68,13 @@ public class NotificationsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateNotification([FromBody] NotificationCreateRequest request)
     {
-        var result = await _notificationsService.CreateNotificationAsync(request, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User identity is missing.");
+        }
+
+        var result = await _notificationsService.CreateNotificationAsync(currentUserId, request, HttpContext.RequestAborted);
         return FromServiceResult(result, created: true);
     }
 

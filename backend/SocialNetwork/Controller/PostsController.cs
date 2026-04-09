@@ -42,7 +42,6 @@ public class PostsController : ApiControllerBase
     /// <code>
     /// POST /api/posts
     /// {
-    ///   "userId": "user-123",
     ///   "content": "Hello world",
     ///   "imageUrl": "https://example.com/image.png"
     /// }
@@ -53,7 +52,13 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreatePost([FromBody] PostCreateRequest request)
     {
-        var result = await _postsService.CreatePostAsync(request, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User identity is missing.");
+        }
+
+        var result = await _postsService.CreatePostAsync(currentUserId, request, HttpContext.RequestAborted);
         return FromServiceResult(result, created: true);
     }
 
@@ -101,7 +106,6 @@ public class PostsController : ApiControllerBase
     /// <code>
     /// POST /api/posts/{postId}/comments
     /// {
-    ///   "userId": "user-123",
     ///   "content": "Nice post!"
     /// }
     /// </code>
@@ -111,7 +115,13 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateComment(string postId, [FromBody] CommentCreateRequest request)
     {
-        var result = await _postsService.CreateCommentAsync(postId, request, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User identity is missing.");
+        }
+
+        var result = await _postsService.CreateCommentAsync(currentUserId, postId, request, HttpContext.RequestAborted);
         return FromServiceResult(result, created: true);
     }
 
@@ -137,7 +147,13 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> LikePost(string postId, [FromBody] LikeCreateRequest request)
     {
-        var result = await _postsService.LikePostAsync(postId, request, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User identity is missing.");
+        }
+
+        var result = await _postsService.LikePostAsync(currentUserId, postId, request, HttpContext.RequestAborted);
         if (!result.Success)
         {
             return FromServiceResult(result);
@@ -162,7 +178,13 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ReportPost(string postId, [FromBody] PostReportCreateRequest request)
     {
-        var result = await _postsService.ReportPostAsync(postId, request, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User identity is missing.");
+        }
+
+        var result = await _postsService.ReportPostAsync(currentUserId, postId, request, HttpContext.RequestAborted);
         return FromServiceResult(result, created: true);
     }
 }

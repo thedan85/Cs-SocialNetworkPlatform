@@ -5,7 +5,6 @@ namespace SocialNetwork.Dtos;
 
 public class PostCreateRequest
 {
-    [Required]
     [StringLength(128)]
     public string UserId { get; set; } = string.Empty;
 

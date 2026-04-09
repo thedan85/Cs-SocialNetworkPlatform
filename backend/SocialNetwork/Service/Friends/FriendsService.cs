@@ -1,5 +1,4 @@
 using SocialNetwork.Dtos;
-using SocialNetwork.Data;
 using SocialNetwork.Extensions;
 using SocialNetwork.Helpers;
 using SocialNetwork.Model;
@@ -9,33 +8,34 @@ namespace SocialNetwork.Service;
 
 public class FriendsService : IFriendsService
 {
-    private readonly ApplicationDbContext _dbContext;
     private readonly IFriendshipRepository _friendshipRepository;
     private readonly IUserRepository _userRepository;
     private readonly INotificationRepository _notificationRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public FriendsService(
-        ApplicationDbContext dbContext,
         IFriendshipRepository friendshipRepository,
         IUserRepository userRepository,
-        INotificationRepository notificationRepository)
+        INotificationRepository notificationRepository,
+        IUnitOfWork unitOfWork)
     {
-        _dbContext = dbContext;
         _friendshipRepository = friendshipRepository;
         _userRepository = userRepository;
         _notificationRepository = notificationRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<ServiceResult<FriendshipResponse>> CreateFriendRequestAsync(
+        string requesterUserId,
         FriendRequestCreateRequest request,
         CancellationToken ct = default)
     {
-        if (request.RequesterUserId == request.AddresseeUserId)
+        if (requesterUserId == request.AddresseeUserId)
         {
             return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.Validation, "You cannot friend yourself.");
         }
 
-        var requesterExists = await _userRepository.ExistsByIdAsync(request.RequesterUserId, ct);
+        var requesterExists = await _userRepository.ExistsByIdAsync(requesterUserId, ct);
         var addresseeExists = await _userRepository.ExistsByIdAsync(request.AddresseeUserId, ct);
 
         if (!requesterExists || !addresseeExists)
@@ -44,7 +44,7 @@ public class FriendsService : IFriendsService
         }
 
         var requestExists = await _friendshipRepository.ExistsBetweenUsersAsync(
-            request.RequesterUserId,
+            requesterUserId,
             request.AddresseeUserId,
             ct);
 
@@ -57,7 +57,7 @@ public class FriendsService : IFriendsService
 
         var friendship = new Friendship
         {
-            UserId1 = request.RequesterUserId,
+            UserId1 = requesterUserId,
             UserId2 = request.AddresseeUserId,
             Status = "Pending"
         };
@@ -65,19 +65,19 @@ public class FriendsService : IFriendsService
         var now = DateTime.UtcNow;
         friendship.CreatedAt = now;
 
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(ct);
 
         try
         {
             await _friendshipRepository.AddAsync(friendship, ct);
 
-            var requester = await _userRepository.GetByIdAsync(request.RequesterUserId, ct);
-            var requesterDisplayName = requester?.UserName ?? $"User {request.RequesterUserId}";
+            var requester = await _userRepository.GetByIdAsync(requesterUserId, ct);
+            var requesterDisplayName = requester?.UserName ?? $"User {requesterUserId}";
 
             var notification = new Notification
             {
                 RecipientUserId = request.AddresseeUserId,
-                SenderUserId = request.RequesterUserId,
+                SenderUserId = requesterUserId,
                 Type = "FriendRequest",
                 Content = NotificationContentHelper.BuildFriendRequestContent(requesterDisplayName),
                 CreatedAt = now,
@@ -115,7 +115,7 @@ public class FriendsService : IFriendsService
 
         var now = DateTime.UtcNow;
 
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(ct);
 
         try
         {

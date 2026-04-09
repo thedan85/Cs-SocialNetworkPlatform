@@ -9,4 +9,6 @@ public class Hashtag
     public int UsageCount { get; set; } = 0;
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public ICollection<PostHashtag> PostHashtags { get; set; } = new List<PostHashtag>();
 }

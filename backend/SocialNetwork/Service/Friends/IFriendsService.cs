@@ -4,7 +4,10 @@ namespace SocialNetwork.Service;
 
 public interface IFriendsService
 {
-    Task<ServiceResult<FriendshipResponse>> CreateFriendRequestAsync(FriendRequestCreateRequest request, CancellationToken ct = default);
+    Task<ServiceResult<FriendshipResponse>> CreateFriendRequestAsync(
+        string requesterUserId,
+        FriendRequestCreateRequest request,
+        CancellationToken ct = default);
     Task<ServiceResult<FriendshipResponse>> AcceptFriendRequestAsync(string friendshipId, CancellationToken ct = default);
     Task<ServiceResult<FriendshipResponse>> RejectFriendRequestAsync(string friendshipId, CancellationToken ct = default);
 

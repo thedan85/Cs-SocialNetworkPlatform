@@ -16,8 +16,9 @@ public class Post
     
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    public ICollection<Comment>? Comments { get; set; }
-    public ICollection<Like>? Likes { get; set; }
+    public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+    public ICollection<Like> Likes { get; set; } = new List<Like>();
+    public ICollection<PostHashtag> PostHashtags { get; set; } = new List<PostHashtag>();
     
     // Navigation property
     public virtual User? User { get; set; }

@@ -124,16 +124,28 @@ builder.Services.AddSwaggerGen(options =>
     options.AddSecurityDefinition("Bearer", securityScheme);
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
-        { securityScheme, Array.Empty<string>() }
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = JwtBearerDefaults.AuthenticationScheme
+                }
+            },
+            Array.Empty<string>()
+        }
     });
 });
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPostRepository, PostRepository>();
 builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+builder.Services.AddScoped<ILikeRepository, LikeRepository>();
 builder.Services.AddScoped<IFriendshipRepository, FriendshipRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IPostReportRepository, PostReportRepository>();
 builder.Services.AddScoped<IStoryRepository, StoryRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddScoped<IUsersService, UsersService>();
 builder.Services.AddScoped<IPostsService, PostsService>();
@@ -177,7 +189,10 @@ app.UseExceptionHandler(appError =>
 });
 
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(options =>
+{
+    options.ConfigObject.PersistAuthorization = true;
+});
 
 app.UseHttpsRedirection();
 app.UseCors(ReactCorsPolicy);
