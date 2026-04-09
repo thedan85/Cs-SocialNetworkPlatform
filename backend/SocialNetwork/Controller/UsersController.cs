@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +11,7 @@ namespace SocialNetwork.Controller;
 
 [ApiController]
 [Route("api/users")]
+[Authorize]
 public class UsersController : ApiControllerBase
 {
     private readonly ApplicationDbContext _dbContext;
@@ -22,6 +25,7 @@ public class UsersController : ApiControllerBase
 
     /// <summary>Get all users.</summary>
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<List<UserResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetUsers()
     {
@@ -49,6 +53,11 @@ public class UsersController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserById(string userId)
     {
+        if (!IsCurrentUserOrAdmin(userId))
+        {
+            return UnauthorizedResponse("You are not allowed to access this user.");
+        }
+
         var user = await _dbContext.Users.AsNoTracking()
             .FirstOrDefaultAsync(entity => entity.Id == userId);
 
@@ -89,6 +98,11 @@ public class UsersController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateUser(string userId, [FromBody] UserUpdateRequest request)
     {
+        if (!IsCurrentUserOrAdmin(userId))
+        {
+            return UnauthorizedResponse("You are not allowed to update this user.");
+        }
+
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
         {
@@ -140,6 +154,11 @@ public class UsersController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserPosts(string userId)
     {
+        if (!IsCurrentUserOrAdmin(userId))
+        {
+            return UnauthorizedResponse("You are not allowed to access this user's posts.");
+        }
+
         var userExists = await _dbContext.Users.AnyAsync(entity => entity.Id == userId);
         if (!userExists)
         {
@@ -162,5 +181,17 @@ public class UsersController : ApiControllerBase
             .ToListAsync();
 
         return OkResponse(posts);
+    }
+
+    private bool IsCurrentUserOrAdmin(string userId)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return false;
+        }
+
+        return User.IsInRole("Admin")
+            || string.Equals(currentUserId, userId, StringComparison.OrdinalIgnoreCase);
     }
 }

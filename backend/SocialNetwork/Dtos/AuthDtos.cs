@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace SocialNetwork.Dtos;
@@ -17,10 +19,6 @@ public class RegisterRequest
     [MinLength(6)]
     [StringLength(100)]
     public string Password { get; set; } = string.Empty;
-
-    [StringLength(500)]
-    [Url]
-    public string? ProfilePicture { get; set; }
 
     [StringLength(1000)]
     public string? Bio { get; set; }
@@ -42,6 +40,19 @@ public class AuthUserResponse
     public string UserId { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
-    public string? ProfilePicture { get; set; }
     public string? Bio { get; set; }
+}
+
+public class TokenResponse
+{
+    public string AccessToken { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
+    public string TokenType { get; set; } = "Bearer";
+    public List<string> Roles { get; set; } = new();
+}
+
+public class AuthTokenResponse
+{
+    public AuthUserResponse User { get; set; } = new();
+    public TokenResponse Token { get; set; } = new();
 }

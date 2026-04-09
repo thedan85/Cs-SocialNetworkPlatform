@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SocialNetwork.Data;
@@ -8,6 +9,7 @@ namespace SocialNetwork.Controller;
 
 [ApiController]
 [Route("api/posts")]
+[Authorize]
 public class PostsController : ApiControllerBase
 {
     private readonly ApplicationDbContext _dbContext;
