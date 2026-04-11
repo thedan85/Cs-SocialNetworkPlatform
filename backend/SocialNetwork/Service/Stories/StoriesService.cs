@@ -92,8 +92,28 @@ public class StoriesService : IStoriesService
         return ServiceResult<StoryResponse>.Ok(story.ToStoryResponse());
     }
 
-    public async Task<ServiceResult<string>> DeleteStoryAsync(string storyId, CancellationToken ct = default)
+    public async Task<ServiceResult<string>> DeleteStoryAsync(
+        string actorUserId,
+        string storyId,
+        bool isAdmin,
+        CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
+        var story = await _storyRepository.GetByIdAsync(storyId, ct);
+        if (story is null)
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Story not found.");
+        }
+
+        if (!isAdmin && !string.Equals(story.UserId, actorUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "You are not allowed to delete this story.");
+        }
+
         var deleted = await _storyRepository.DeleteAsync(storyId, ct);
         if (!deleted)
         {

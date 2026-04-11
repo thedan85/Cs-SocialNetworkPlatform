@@ -11,8 +11,17 @@ public interface IPostsService
 
     Task<ServiceResult<PostResponse>> GetPostByIdAsync(string postId, CancellationToken ct = default);
     Task<ServiceResult<PostResponse>> CreatePostAsync(string actorUserId, PostCreateRequest request, CancellationToken ct = default);
-    Task<ServiceResult<PostResponse>> UpdatePostAsync(string postId, PostUpdateRequest request, CancellationToken ct = default);
-    Task<ServiceResult<string>> DeletePostAsync(string postId, CancellationToken ct = default);
+    Task<ServiceResult<PostResponse>> UpdatePostAsync(
+        string actorUserId,
+        string postId,
+        PostUpdateRequest request,
+        bool isAdmin,
+        CancellationToken ct = default);
+    Task<ServiceResult<string>> DeletePostAsync(
+        string actorUserId,
+        string postId,
+        bool isAdmin,
+        CancellationToken ct = default);
 
     Task<ServiceResult<IReadOnlyList<CommentResponse>>> GetPostCommentsAsync(
         string postId,

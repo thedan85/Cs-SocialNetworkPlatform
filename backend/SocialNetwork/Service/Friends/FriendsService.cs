@@ -8,21 +8,21 @@ namespace SocialNetwork.Service;
 
 public class FriendsService : IFriendsService
 {
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IFriendshipRepository _friendshipRepository;
     private readonly IUserRepository _userRepository;
     private readonly INotificationRepository _notificationRepository;
-    private readonly IUnitOfWork _unitOfWork;
 
     public FriendsService(
+        IUnitOfWork unitOfWork,
         IFriendshipRepository friendshipRepository,
         IUserRepository userRepository,
-        INotificationRepository notificationRepository,
-        IUnitOfWork unitOfWork)
+        INotificationRepository notificationRepository)
     {
+        _unitOfWork = unitOfWork;
         _friendshipRepository = friendshipRepository;
         _userRepository = userRepository;
         _notificationRepository = notificationRepository;
-        _unitOfWork = unitOfWork;
     }
 
     public async Task<ServiceResult<FriendshipResponse>> CreateFriendRequestAsync(
@@ -30,6 +30,11 @@ public class FriendsService : IFriendsService
         FriendRequestCreateRequest request,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(requesterUserId))
+        {
+            return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
         if (requesterUserId == request.AddresseeUserId)
         {
             return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.Validation, "You cannot friend yourself.");
@@ -97,13 +102,25 @@ public class FriendsService : IFriendsService
     }
 
     public async Task<ServiceResult<FriendshipResponse>> AcceptFriendRequestAsync(
+        string actorUserId,
         string friendshipId,
+        bool isAdmin,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
         var friendship = await _friendshipRepository.GetByIdAsync(friendshipId, ct);
         if (friendship is null)
         {
             return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.NotFound, "Friend request not found.");
+        }
+
+        if (!isAdmin && !string.Equals(friendship.UserId2, actorUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.Unauthorized, "You are not allowed to accept this request.");
         }
 
         if (!string.Equals(friendship.Status, "Pending", StringComparison.OrdinalIgnoreCase))
@@ -126,13 +143,13 @@ public class FriendsService : IFriendsService
                 return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.NotFound, "Friend request not found.");
             }
 
-            var accepter = await _userRepository.GetByIdAsync(friendship.UserId2, ct);
-            var accepterDisplayName = accepter?.UserName ?? $"User {friendship.UserId2}";
+            var accepter = await _userRepository.GetByIdAsync(actorUserId, ct);
+            var accepterDisplayName = accepter?.UserName ?? $"User {actorUserId}";
 
             var notification = new Notification
             {
                 RecipientUserId = friendship.UserId1,
-                SenderUserId = friendship.UserId2,
+                SenderUserId = actorUserId,
                 Type = "FriendAccepted",
                 Content = NotificationContentHelper.BuildFriendAcceptedContent(accepterDisplayName),
                 CreatedAt = now,
@@ -155,13 +172,25 @@ public class FriendsService : IFriendsService
     }
 
     public async Task<ServiceResult<FriendshipResponse>> RejectFriendRequestAsync(
+        string actorUserId,
         string friendshipId,
+        bool isAdmin,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
         var friendship = await _friendshipRepository.GetByIdAsync(friendshipId, ct);
         if (friendship is null)
         {
             return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.NotFound, "Friend request not found.");
+        }
+
+        if (!isAdmin && !string.Equals(friendship.UserId2, actorUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.Unauthorized, "You are not allowed to reject this request.");
         }
 
         if (!string.Equals(friendship.Status, "Pending", StringComparison.OrdinalIgnoreCase))

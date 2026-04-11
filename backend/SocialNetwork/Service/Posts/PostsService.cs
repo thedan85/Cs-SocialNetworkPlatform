@@ -7,27 +7,27 @@ namespace SocialNetwork.Service;
 
 public class PostsService : IPostsService
 {
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IPostRepository _postRepository;
     private readonly ICommentRepository _commentRepository;
     private readonly ILikeRepository _likeRepository;
     private readonly IUserRepository _userRepository;
     private readonly IPostReportRepository _postReportRepository;
-    private readonly IUnitOfWork _unitOfWork;
 
     public PostsService(
+        IUnitOfWork unitOfWork,
         IPostRepository postRepository,
         ICommentRepository commentRepository,
         ILikeRepository likeRepository,
         IUserRepository userRepository,
-        IPostReportRepository postReportRepository,
-        IUnitOfWork unitOfWork)
+        IPostReportRepository postReportRepository)
     {
+        _unitOfWork = unitOfWork;
         _postRepository = postRepository;
         _commentRepository = commentRepository;
         _likeRepository = likeRepository;
         _userRepository = userRepository;
         _postReportRepository = postReportRepository;
-        _unitOfWork = unitOfWork;
     }
 
     public async Task<ServiceResult<IReadOnlyList<PostResponse>>> GetPostsAsync(
@@ -60,6 +60,11 @@ public class PostsService : IPostsService
         PostCreateRequest request,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<PostResponse>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
         var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
         if (!userExists)
         {
@@ -80,14 +85,26 @@ public class PostsService : IPostsService
     }
 
     public async Task<ServiceResult<PostResponse>> UpdatePostAsync(
+        string actorUserId,
         string postId,
         PostUpdateRequest request,
+        bool isAdmin,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<PostResponse>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
         var existingPost = await _postRepository.GetByIdAsync(postId, ct);
         if (existingPost is null)
         {
             return ServiceResult<PostResponse>.Fail(ServiceErrorType.NotFound, "Post not found.");
+        }
+
+        if (!isAdmin && !string.Equals(existingPost.UserId, actorUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<PostResponse>.Fail(ServiceErrorType.Unauthorized, "You are not allowed to update this post.");
         }
 
         var now = DateTime.UtcNow;
@@ -100,12 +117,26 @@ public class PostsService : IPostsService
         return ServiceResult<PostResponse>.Ok(existingPost.ToPostResponse());
     }
 
-    public async Task<ServiceResult<string>> DeletePostAsync(string postId, CancellationToken ct = default)
+    public async Task<ServiceResult<string>> DeletePostAsync(
+        string actorUserId,
+        string postId,
+        bool isAdmin,
+        CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
         var post = await _postRepository.GetByIdAsync(postId, ct);
         if (post is null)
         {
             return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Post not found.");
+        }
+
+        if (!isAdmin && !string.Equals(post.UserId, actorUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "You are not allowed to delete this post.");
         }
 
         await _postRepository.DeleteAsync(postId, ct);
@@ -139,6 +170,11 @@ public class PostsService : IPostsService
         CommentCreateRequest request,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<CommentResponse>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
         var post = await _postRepository.GetByIdAsync(postId, ct);
         if (post is null)
         {
@@ -188,6 +224,11 @@ public class PostsService : IPostsService
         LikeCreateRequest request,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<LikePostResult>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
         var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
         if (!userExists)
         {
@@ -229,9 +270,9 @@ public class PostsService : IPostsService
 
             await _likeRepository.AddAsync(like, ct);
 
-            var updatedRows = await _postRepository.IncrementLikeCountAsync(postId, 1, ct);
+            var updated = await _postRepository.IncrementLikeCountAsync(postId, 1, ct);
 
-            if (!updatedRows)
+            if (!updated)
             {
                 await transaction.RollbackAsync(ct);
                 return ServiceResult<LikePostResult>.Fail(ServiceErrorType.NotFound, "Post not found.");
@@ -258,6 +299,11 @@ public class PostsService : IPostsService
         PostReportCreateRequest request,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<PostReportResponse>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
         var post = await _postRepository.GetByIdAsync(postId, ct);
         if (post is null)
         {

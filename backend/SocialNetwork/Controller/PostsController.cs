@@ -42,6 +42,7 @@ public class PostsController : ApiControllerBase
     /// <code>
     /// POST /api/posts
     /// {
+    ///   "userId": "user-123",
     ///   "content": "Hello world",
     ///   "imageUrl": "https://example.com/image.png"
     /// }
@@ -55,8 +56,10 @@ public class PostsController : ApiControllerBase
         var currentUserId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(currentUserId))
         {
-            return UnauthorizedResponse("User identity is missing.");
+            return UnauthorizedResponse("User context is missing.");
         }
+
+        request.UserId = currentUserId;
 
         var result = await _postsService.CreatePostAsync(currentUserId, request, HttpContext.RequestAborted);
         return FromServiceResult(result, created: true);
@@ -68,7 +71,18 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdatePost(string postId, [FromBody] PostUpdateRequest request)
     {
-        var result = await _postsService.UpdatePostAsync(postId, request, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _postsService.UpdatePostAsync(
+            currentUserId,
+            postId,
+            request,
+            User.IsInRole("Admin"),
+            HttpContext.RequestAborted);
         return FromServiceResult(result);
     }
 
@@ -78,7 +92,17 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeletePost(string postId)
     {
-        var result = await _postsService.DeletePostAsync(postId, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _postsService.DeletePostAsync(
+            currentUserId,
+            postId,
+            User.IsInRole("Admin"),
+            HttpContext.RequestAborted);
         if (!result.Success)
         {
             return FromServiceResult(result);
@@ -106,6 +130,7 @@ public class PostsController : ApiControllerBase
     /// <code>
     /// POST /api/posts/{postId}/comments
     /// {
+    ///   "userId": "user-123",
     ///   "content": "Nice post!"
     /// }
     /// </code>
@@ -118,8 +143,10 @@ public class PostsController : ApiControllerBase
         var currentUserId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(currentUserId))
         {
-            return UnauthorizedResponse("User identity is missing.");
+            return UnauthorizedResponse("User context is missing.");
         }
+
+        request.UserId = currentUserId;
 
         var result = await _postsService.CreateCommentAsync(currentUserId, postId, request, HttpContext.RequestAborted);
         return FromServiceResult(result, created: true);
@@ -150,8 +177,10 @@ public class PostsController : ApiControllerBase
         var currentUserId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(currentUserId))
         {
-            return UnauthorizedResponse("User identity is missing.");
+            return UnauthorizedResponse("User context is missing.");
         }
+
+        request.UserId = currentUserId;
 
         var result = await _postsService.LikePostAsync(currentUserId, postId, request, HttpContext.RequestAborted);
         if (!result.Success)
@@ -181,8 +210,10 @@ public class PostsController : ApiControllerBase
         var currentUserId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(currentUserId))
         {
-            return UnauthorizedResponse("User identity is missing.");
+            return UnauthorizedResponse("User context is missing.");
         }
+
+        request.ReporterUserId = currentUserId;
 
         var result = await _postsService.ReportPostAsync(currentUserId, postId, request, HttpContext.RequestAborted);
         return FromServiceResult(result, created: true);

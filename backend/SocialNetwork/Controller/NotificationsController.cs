@@ -84,7 +84,17 @@ public class NotificationsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MarkAsRead(string notificationId)
     {
-        var result = await _notificationsService.MarkAsReadAsync(notificationId, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _notificationsService.MarkAsReadAsync(
+            currentUserId,
+            notificationId,
+            User.IsInRole("Admin"),
+            HttpContext.RequestAborted);
         return FromServiceResult(result);
     }
 
@@ -94,7 +104,17 @@ public class NotificationsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteNotification(string notificationId)
     {
-        var result = await _notificationsService.DeleteNotificationAsync(notificationId, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _notificationsService.DeleteNotificationAsync(
+            currentUserId,
+            notificationId,
+            User.IsInRole("Admin"),
+            HttpContext.RequestAborted);
         if (!result.Success)
         {
             return FromServiceResult(result);
