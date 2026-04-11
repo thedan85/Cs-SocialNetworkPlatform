@@ -202,6 +202,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-await IdentitySeeder.SeedRolesAsync(app.Services);
+await DatabaseSeeder.SeedAsync(app.Services);
 
 app.Run();
