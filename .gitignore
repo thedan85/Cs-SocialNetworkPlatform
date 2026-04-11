@@ -47,3 +47,7 @@ backend/SocialNetwork/obj/SocialNetwork.csproj.nuget.g.props
 .github/skills/requirement-b3-jwt/SKILL.md
 .github/skills/requirement-b2-api/SKILL.md
 .github/instructions/csharp-api-standards.instructions.md
+
+
+backend/SocialNetwork.Tests/coveragereport
+backend/SocialNetwork.Tests/TestResults
