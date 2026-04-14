@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
+using SocialNetwork.Helpers;
 using SocialNetwork.Model;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
@@ -34,6 +35,10 @@ public class ApplicationDbContext : IdentityDbContext<User>
         modelBuilder.Entity<User>(entity =>
         {
             entity.ToTable("User");
+
+            entity.HasIndex(e => e.UserName);
+
+            entity.HasIndex(e => e.Email);
             
             entity.Property(e => e.ProfilePicture)
                 .HasMaxLength(500);
@@ -57,6 +62,10 @@ public class ApplicationDbContext : IdentityDbContext<User>
             entity.ToTable("Post");
 
             entity.HasKey(e => e.PostId);
+
+            entity.HasIndex(e => e.CreatedAt);
+
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt });
 
             entity.Property(e => e.PostId)
                 .HasMaxLength(36)
@@ -162,6 +171,8 @@ public class ApplicationDbContext : IdentityDbContext<User>
 
             entity.HasKey(e => e.CommentId);
 
+            entity.HasIndex(e => new { e.PostId, e.CreatedAt });
+
             entity.Property(e => e.CommentId)
                 .HasMaxLength(36)
                 .IsRequired();
@@ -200,6 +211,10 @@ public class ApplicationDbContext : IdentityDbContext<User>
             entity.ToTable("Story");
 
             entity.HasKey(e => e.StoryId);
+
+            entity.HasIndex(e => new { e.ExpiresAt, e.CreatedAt });
+
+            entity.HasIndex(e => new { e.UserId, e.ExpiresAt, e.CreatedAt });
 
             entity.Property(e => e.StoryId)
                 .HasMaxLength(36)
@@ -289,6 +304,10 @@ public class ApplicationDbContext : IdentityDbContext<User>
 
             entity.HasKey(e => e.FriendshipId);
 
+            entity.HasIndex(e => new { e.Status, e.UserId1, e.UpdatedAt });
+
+            entity.HasIndex(e => new { e.UserId2, e.Status, e.CreatedAt });
+
             entity.Property(e => e.FriendshipId)
                 .HasMaxLength(36)
                 .IsRequired();
@@ -361,6 +380,8 @@ public class ApplicationDbContext : IdentityDbContext<User>
 
             entity.HasKey(e=>e.NotificationId);
 
+            entity.HasIndex(e => new { e.RecipientUserId, e.IsRead, e.CreatedAt });
+
             entity.Property(e => e.NotificationId)
                 .HasMaxLength(36)
                 .IsRequired();
@@ -403,6 +424,8 @@ public class ApplicationDbContext : IdentityDbContext<User>
 
             entity.HasKey(e => e.PostReportId);
 
+            entity.HasIndex(e => new { e.Status, e.CreatedAt });
+
             entity.Property(e => e.PostReportId)
                 .HasMaxLength(36)
                 .IsRequired();
@@ -440,10 +463,13 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
 {
     public ApplicationDbContext CreateDbContext(string[] args)
     {
+        LocalEnvironmentLoader.LoadFromDirectory(Directory.GetCurrentDirectory());
+
         var configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json")
             .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddEnvironmentVariables()
             .Build();
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");

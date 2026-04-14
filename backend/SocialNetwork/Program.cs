@@ -11,9 +11,12 @@ using Microsoft.OpenApi.Models;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using SocialNetwork.Data;
 using SocialNetwork.Dtos;
+using SocialNetwork.Helpers;
 using SocialNetwork.Model;
 using SocialNetwork.Service;
 using SocialNetwork.Settings;
+
+LocalEnvironmentLoader.LoadFromDirectory(AppContext.BaseDirectory);
 
 var builder = WebApplication.CreateBuilder(args);
 

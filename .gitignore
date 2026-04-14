@@ -20,6 +20,7 @@ obj/
 *.dll
 TestResults/
 coverage/
+.env.local
 
 # EF Core / NuGet restore artifacts
 project.lock.json
