@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { Menu, X, Home, User, Bell, LogOut, Search } from 'lucide-react';
+import { Menu, X, Home, User, Bell, LogOut, Search, Users, BookOpen } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { NavItem } from '../../types/nav';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
 
   const navLinks: NavItem[] = [
     { label: 'Home', href: '/', icon: Home },
     { label: 'Notifications', href: '/notifications', icon: Bell },
+    { label: 'Friends', href: '/friends', icon: Users },
+    { label: 'Stories', href: '/stories', icon: BookOpen },
     { label: 'Profile', href: '/profile', icon: User },
   ];
 

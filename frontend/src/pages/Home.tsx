@@ -1,58 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import CreatePost from '../components/specific/CreatePost';
 import PostCard from '../components/specific/PostCard';
 import PostSkeleton from '../components/common/PostSkeleton';
-import { Post } from '../types';
+import { usePosts } from '../hooks/usePosts';
 
 const Home = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { posts, getPosts, createPost, loading, error } = usePosts();
 
   useEffect(() => {
-    // Simulate fetching posts from API
-    setTimeout(() => {
-      setPosts([
-        {
-          id: '1',
-          content: 'Hello world! This is my first post on this awesome social network 🌍',
-          createdAt: new Date().toISOString(),
-          likesCount: 5,
-          imageUrl: 'https://picsum.photos/500?random=1',
-          author: {
-            id: '1',
-            username: 'john_doe',
-            email: 'john@example.com'
-          }
-        },
-        {
-          id: '2',
-          content: 'Just finished an amazing project with React and TypeScript! 💻',
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-          likesCount: 12,
-          imageUrl: 'https://picsum.photos/500?random=2',
-          author: {
-            id: '2',
-            username: 'jane_smith',
-            email: 'jane@example.com'
-          }
-        }
-      ]);
-      setLoading(false);
-    }, 1500);
-  }, []);
+    getPosts().catch(() => undefined);
+  }, [getPosts]);
 
   return (
     <div className="max-w-2xl mx-auto">
-      <CreatePost />
+      <CreatePost onCreate={createPost} />
 
       <div className="space-y-4 mt-4">
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
         {loading ? (
           <>
             <PostSkeleton />
             <PostSkeleton />
           </>
         ) : (
-          posts.map(p => <PostCard key={p.id} post={p} />)
+          posts.map(p => <PostCard key={p.postId} post={p} />)
         )}
       </div>
     </div>

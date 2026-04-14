@@ -3,9 +3,10 @@ import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import Input from '../components/common/Input';
 import { useAuth } from '../contexts/AuthContext';
+import { login as loginRequest, toUser } from '../services/auth';
 
 interface LoginForm {
-  email: string;
+  userNameOrEmail: string;
   password: string;
 }
 
@@ -16,15 +17,12 @@ const Login = () => {
 
   const onSubmit = async (data: LoginForm) => {
     try {
-      // Call your backend API here: const response = await api.post('/auth/login', data);
-      console.log('Login data:', data);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-      
-      // Mock user for demonstration
-      const mockUser = { id: '1', username: 'john_doe', email: data.email };
-      login('mock-jwt-token', mockUser);
-      
-      navigate('/'); // Redirect to home
+      const result = await loginRequest({
+        userNameOrEmail: data.userNameOrEmail,
+        password: data.password
+      });
+      login(result.token.accessToken, toUser(result.user));
+      navigate('/');
     } catch (err) {
       alert('Login failed!');
     }
@@ -39,14 +37,10 @@ const Login = () => {
         <h2 className="text-3xl font-bold text-center text-gray-800">Welcome Back</h2>
         
         <Input
-          label="Email"
-          type="email"
+          label="Email or Username"
           placeholder="email@example.com"
-          error={errors.email?.message}
-          {...register('email', { 
-            required: 'Email is required',
-            pattern: { value: /^\S+@\S+$/i, message: 'Invalid email format' }
-          })}
+          error={errors.userNameOrEmail?.message}
+          {...register('userNameOrEmail', { required: 'Email or username is required' })}
         />
 
         <Input
@@ -54,7 +48,7 @@ const Login = () => {
           type="password"
           placeholder="••••••••"
           error={errors.password?.message}
-          {...register('password', { 
+          {...register('password', {
             required: 'Password is required',
             minLength: { value: 6, message: 'Password must be at least 6 characters' }
           })}

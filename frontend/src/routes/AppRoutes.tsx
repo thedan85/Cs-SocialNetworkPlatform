@@ -8,6 +8,9 @@ const Home = lazy(() => import('../pages/Home'));
 const Login = lazy(() => import('../pages/Login'));
 const Register = lazy(() => import('../pages/Register'));
 const Profile = lazy(() => import('../pages/Profile'));
+const Notifications = lazy(() => import('../pages/Notifications'));
+const Friends = lazy(() => import('../pages/Friends'));
+const Stories = lazy(() => import('../pages/Stories'));
 
 const AppRoutes = () => {
   return (
@@ -22,6 +25,9 @@ const AppRoutes = () => {
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/friends" element={<Friends />} />
+            <Route path="/stories" element={<Stories />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Route>

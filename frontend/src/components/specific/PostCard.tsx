@@ -1,6 +1,7 @@
 import { Post } from '../../types';
 import { Heart, MessageCircle, Share2 } from 'lucide-react';
 import { useState } from 'react';
+import { likePost } from '../../services/posts';
 
 interface PostCardProps {
   post: Post;
@@ -8,23 +9,30 @@ interface PostCardProps {
 
 const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(post.likesCount);
+  const [likesCount, setLikesCount] = useState(post.likeCount);
+  const authorLabel = post.userId ? `User ${post.userId.slice(0, 8)}` : 'Unknown user';
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
+  const handleLike = async () => {
+    if (isLiked) return;
+    try {
+      await likePost(post.postId);
+      setIsLiked(true);
+      setLikesCount((current) => current + 1);
+    } catch (err) {
+      alert('Unable to like this post.');
+    }
   };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-center gap-3 mb-3">
         <img
-          src={post.author.avatarUrl || `https://ui-avatars.com/api/?name=${post.author.username}`}
+          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(authorLabel)}`}
           className="w-10 h-10 rounded-full object-cover"
-          alt={post.author.username}
+          alt={authorLabel}
         />
         <div>
-          <p className="font-semibold text-gray-800">{post.author.username}</p>
+          <p className="font-semibold text-gray-800">{authorLabel}</p>
           <span className="text-xs text-gray-400">
             {new Date(post.createdAt).toLocaleString()}
           </span>

@@ -1,40 +1,51 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useForm } from 'react-hook-form';
 import Input from '../components/common/Input';
 import { User, LogOut } from 'lucide-react';
+import { updateUser as updateUserRequest } from '../services/users';
 
 interface UpdateProfileForm {
-  username: string;
-  email: string;
-  avatar?: FileList;
+  profilePicture?: string;
+  bio?: string;
 }
 
 const Profile = () => {
-  const { user, logout } = useAuth();
-  const { register, handleSubmit, formState: { isSubmitting } } = useForm<UpdateProfileForm>(
+  const { user, logout, updateUser } = useAuth();
+  const { register, handleSubmit, watch, formState: { isSubmitting } } = useForm<UpdateProfileForm>(
     {
       defaultValues: {
-        username: user?.username || '',
-        email: user?.email || '',
+        profilePicture: user?.profilePicture || '',
+        bio: user?.bio || '',
       },
     }
   );
-  const [preview, setPreview] = useState<string | null>(user?.avatarUrl || null);
+  const [preview, setPreview] = useState<string | null>(user?.profilePicture || null);
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPreview(URL.createObjectURL(file));
+  const profilePictureValue = watch('profilePicture');
+
+  useEffect(() => {
+    if (typeof profilePictureValue === 'string') {
+      setPreview(profilePictureValue || null);
     }
-  };
+  }, [profilePictureValue]);
 
   const onSubmit = async (data: UpdateProfileForm) => {
     try {
-      console.log('Update profile:', data);
-      // Call API: await api.put('/auth/profile', data)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!user) return;
+      const updated = await updateUserRequest(user.userId, {
+        profilePicture: data.profilePicture?.trim() || null,
+        bio: data.bio?.trim() || null
+      });
+      updateUser({
+        userId: updated.userId,
+        userName: updated.userName,
+        email: updated.email,
+        profilePicture: updated.profilePicture ?? null,
+        bio: updated.bio ?? null,
+        isActive: updated.isActive
+      });
       alert('Profile updated successfully!');
       setIsEditing(false);
     } catch (err) {
@@ -59,7 +70,7 @@ const Profile = () => {
             )}
           </div>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-800">{user?.username}</h1>
+            <h1 className="text-3xl font-bold text-gray-800">{user?.userName}</h1>
             <p className="text-gray-600 mt-2">{user?.email}</p>
           </div>
           <button
@@ -93,30 +104,23 @@ const Profile = () => {
                     <div className="flex items-center justify-center h-full text-gray-400">No Avatar</div>
                   )}
                 </div>
-                <label className="text-sm text-blue-600 cursor-pointer hover:underline font-medium">
-                  Change Avatar
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    {...register('avatar')}
-                    onChange={handleFileChange}
-                  />
-                </label>
               </div>
 
               <Input
-                label="Username"
-                placeholder="Your username"
-                {...register('username')}
+                label="Profile Picture URL"
+                placeholder="https://example.com/avatar.png"
+                {...register('profilePicture')}
               />
 
-              <Input
-                label="Email"
-                type="email"
-                placeholder="your.email@example.com"
-                {...register('email')}
-              />
+              <div>
+                <label className="text-sm font-medium text-gray-700">Bio</label>
+                <textarea
+                  {...register('bio')}
+                  rows={3}
+                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  placeholder="Write a short bio"
+                />
+              </div>
 
               <button
                 type="submit"
@@ -130,11 +134,15 @@ const Profile = () => {
             <div className="space-y-4">
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-600">Username</p>
-                <p className="text-lg font-semibold text-gray-800">{user?.username}</p>
+                <p className="text-lg font-semibold text-gray-800">{user?.userName}</p>
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-600">Email</p>
                 <p className="text-lg font-semibold text-gray-800">{user?.email}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Bio</p>
+                <p className="text-lg font-semibold text-gray-800">{user?.bio || 'No bio yet'}</p>
               </div>
             </div>
           )}

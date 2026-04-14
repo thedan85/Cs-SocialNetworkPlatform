@@ -1,40 +1,47 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { X, Send, Loader2, Image as ImageIcon } from 'lucide-react';
 
 interface FormData {
   content: string;
-  image: FileList;
+  imageUrl?: string;
 }
 
-const CreatePost = () => {
+interface CreatePostProps {
+  onCreate: (content: string, imageUrl?: string) => Promise<unknown>;
+}
+
+const CreatePost: React.FC<CreatePostProps> = ({ onCreate }) => {
   const [preview, setPreview] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement | null>(null);
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     watch,
     formState: { isSubmitting }
   } = useForm<FormData>();
 
   const content = watch('content');
+  const imageUrl = watch('imageUrl');
 
-  const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) setPreview(URL.createObjectURL(file));
-  };
+  useEffect(() => {
+    if (imageUrl && imageUrl.trim()) {
+      setPreview(imageUrl.trim());
+    } else {
+      setPreview(null);
+    }
+  }, [imageUrl]);
 
   const removeImage = () => {
     setPreview(null);
-    if (fileRef.current) fileRef.current.value = '';
+    setValue('imageUrl', '');
   };
 
   const onSubmit = async (data: FormData) => {
     try {
-      // Call API to create post
-      await new Promise(res => setTimeout(res, 1000));
+      await onCreate(data.content, data.imageUrl?.trim() || undefined);
       reset();
       setPreview(null);
       alert('Post created successfully!');
@@ -67,22 +74,17 @@ const CreatePost = () => {
         )}
 
         <div className="flex justify-between items-center mt-3">
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
-          >
-            <ImageIcon className="w-5 h-5" />
-            Add Image
-          </button>
-          <input
-            type="file"
-            hidden
-            {...register('image')}
-            ref={fileRef}
-            onChange={handleImage}
-            accept="image/*"
-          />
+          <div className="flex-1 mr-3">
+            <div className="relative">
+              <ImageIcon className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                type="url"
+                placeholder="Image URL (optional)"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                {...register('imageUrl')}
+              />
+            </div>
+          </div>
 
           <button 
             type="submit" 

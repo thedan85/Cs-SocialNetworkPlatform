@@ -1,38 +1,31 @@
-import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import Input from '../components/common/Input';
+import { register as registerRequest } from '../services/auth';
 
 interface RegisterForm {
-  username: string;
+  userName: string;
   email: string;
   password: string;
   confirmPassword: string;
-  avatar?: FileList;
+  bio?: string;
 }
 
 const Register = () => {
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<RegisterForm>();
-  const [preview, setPreview] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Watch password field to validate confirmPassword
   const password = watch('password');
 
-  // Handle image preview (Requirement F3 - File upload preview)
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPreview(URL.createObjectURL(file));
-    }
-  };
-
   const onSubmit = async (data: RegisterForm) => {
     try {
-      console.log('Registering with:', data);
-      // Call API: const formData = new FormData(); ... api.post('/auth/register', formData)
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await registerRequest({
+        userName: data.userName,
+        email: data.email,
+        password: data.password,
+        bio: data.bio?.trim() || null
+      });
       alert('Registration successful!');
       navigate('/login');
     } catch (err) {
@@ -58,32 +51,11 @@ const Register = () => {
       >
         <h2 className="text-3xl font-bold text-center text-gray-800">Create Account</h2>
 
-        {/* Upload Avatar & Preview */}
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden border-2 border-blue-500">
-            {preview ? (
-              <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400 text-xs">No Avatar</div>
-            )}
-          </div>
-          <label className="text-sm text-blue-600 cursor-pointer hover:underline font-medium">
-            Choose Avatar
-            <input 
-              type="file" 
-              className="hidden" 
-              accept="image/*"
-              {...register('avatar')}
-              onChange={handleFileChange}
-            />
-          </label>
-        </div>
-
         <Input
           label="Username"
           placeholder="john_doe"
-          error={errors.username?.message}
-          {...register('username', { required: 'Username is required' })}
+          error={errors.userName?.message}
+          {...register('userName', { required: 'Username is required' })}
         />
 
         <Input
@@ -126,6 +98,16 @@ const Register = () => {
             validate: value => value === password || 'Passwords do not match'
           })}
         />
+
+        <div>
+          <label className="text-sm font-medium text-gray-700">Bio</label>
+          <textarea
+            {...register('bio')}
+            rows={3}
+            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            placeholder="Tell us a bit about yourself"
+          />
+        </div>
 
         <button
           type="submit"

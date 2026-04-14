@@ -21,6 +21,8 @@ obj/
 TestResults/
 coverage/
 .env.local
+node_modules/
+**/node_modules/
 
 # EF Core / NuGet restore artifacts
 project.lock.json
