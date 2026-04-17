@@ -40,10 +40,10 @@ public class FriendsService : IFriendsService
             return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.Validation, "You cannot friend yourself.");
         }
 
-        var requesterExists = await _userRepository.ExistsByIdAsync(requesterUserId, ct);
-        var addresseeExists = await _userRepository.ExistsByIdAsync(request.AddresseeUserId, ct);
+        var requester = await _userRepository.GetByIdAsync(requesterUserId, ct);
+        var addressee = await _userRepository.GetByIdAsync(request.AddresseeUserId, ct);
 
-        if (!requesterExists || !addresseeExists)
+        if (requester is null || addressee is null)
         {
             return ServiceResult<FriendshipResponse>.Fail(ServiceErrorType.NotFound, "One or more users were not found.");
         }
@@ -76,8 +76,7 @@ public class FriendsService : IFriendsService
         {
             await _friendshipRepository.AddAsync(friendship, ct);
 
-            var requester = await _userRepository.GetByIdAsync(requesterUserId, ct);
-            var requesterDisplayName = requester?.UserName ?? $"User {requesterUserId}";
+            var requesterDisplayName = requester.UserName ?? $"User {requesterUserId}";
 
             var notification = new Notification
             {
@@ -98,7 +97,23 @@ public class FriendsService : IFriendsService
             throw;
         }
 
-        return ServiceResult<FriendshipResponse>.Ok(friendship.ToFriendshipResponse());
+        var response = new FriendshipResponse
+        {
+            FriendshipId = friendship.FriendshipId,
+            UserId1 = friendship.UserId1,
+            UserId2 = friendship.UserId2,
+            User1Name = requester.UserName,
+            User1FirstName = requester.FirstName,
+            User1LastName = requester.LastName,
+            User2Name = addressee.UserName,
+            User2FirstName = addressee.FirstName,
+            User2LastName = addressee.LastName,
+            Status = friendship.Status,
+            CreatedAt = friendship.CreatedAt,
+            UpdatedAt = friendship.UpdatedAt
+        };
+
+        return ServiceResult<FriendshipResponse>.Ok(response);
     }
 
     public async Task<ServiceResult<FriendshipResponse>> AcceptFriendRequestAsync(

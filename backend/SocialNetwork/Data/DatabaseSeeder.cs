@@ -31,6 +31,8 @@ public static class DatabaseSeeder
         var admin = await CreateUserAsync(
             userManager,
             userName: "admin",
+            firstName: "Admin",
+            lastName: "User",
             email: "admin@socialnetwork.local",
             bio: "Platform administrator.",
             profilePicture: "https://images.example.com/profiles/admin.png",
@@ -40,6 +42,8 @@ public static class DatabaseSeeder
         var alice = await CreateUserAsync(
             userManager,
             userName: "alice",
+            firstName: "Alice",
+            lastName: "Nguyen",
             email: "alice@socialnetwork.local",
             bio: "Frontend developer and coffee enthusiast.",
             profilePicture: "https://images.example.com/profiles/alice.png",
@@ -49,6 +53,8 @@ public static class DatabaseSeeder
         var bob = await CreateUserAsync(
             userManager,
             userName: "bob",
+            firstName: "Bob",
+            lastName: "Carter",
             email: "bob@socialnetwork.local",
             bio: "Backend engineer shipping APIs.",
             profilePicture: "https://images.example.com/profiles/bob.png",
@@ -58,6 +64,8 @@ public static class DatabaseSeeder
         var charlie = await CreateUserAsync(
             userManager,
             userName: "charlie",
+            firstName: "Charlie",
+            lastName: "Diaz",
             email: "charlie@socialnetwork.local",
             bio: "Product designer sharing ideas.",
             profilePicture: "https://images.example.com/profiles/charlie.png",
@@ -285,6 +293,8 @@ public static class DatabaseSeeder
     private static async Task<User> CreateUserAsync(
         UserManager<User> userManager,
         string userName,
+        string firstName,
+        string lastName,
         string email,
         string? bio,
         string? profilePicture,
@@ -294,6 +304,8 @@ public static class DatabaseSeeder
         var user = new User
         {
             UserName = userName,
+            FirstName = firstName,
+            LastName = lastName,
             Email = email,
             EmailConfirmed = true,
             Bio = bio,

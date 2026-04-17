@@ -10,6 +10,12 @@ public interface IUserRepository
     Task<User?> GetByUserNameAsync(string userName, CancellationToken ct = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
 
+    Task<IReadOnlyList<User>> SearchByNameAsync(
+        string query,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
+
     Task<bool> ExistsByIdAsync(string userId, CancellationToken ct = default);
     Task<bool> ExistsByUserNameAsync(string userName, CancellationToken ct = default);
     Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default);

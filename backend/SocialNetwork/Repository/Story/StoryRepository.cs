@@ -21,6 +21,7 @@ public class StoryRepository : IStoryRepository
     {
         var stories = await _dbContext.Stories
             .AsNoTracking()
+            .Include(story => story.User)
             .Where(story => story.ExpiresAt > DateTime.UtcNow)
             .OrderByDescending(story => story.CreatedAt)
             .ApplyPaging(pageNumber, pageSize, defaultPageSize: 50)
@@ -33,6 +34,7 @@ public class StoryRepository : IStoryRepository
     {
         return _dbContext.Stories
             .AsNoTracking()
+            .Include(story => story.User)
             .FirstOrDefaultAsync(story => story.StoryId == storyId, ct);
     }
 
@@ -44,6 +46,7 @@ public class StoryRepository : IStoryRepository
     {
         var stories = await _dbContext.Stories
             .AsNoTracking()
+            .Include(story => story.User)
             .Where(story => story.UserId == userId && story.ExpiresAt > DateTime.UtcNow)
             .OrderByDescending(story => story.CreatedAt)
             .ApplyPaging(pageNumber, pageSize, defaultPageSize: 50)
@@ -54,6 +57,8 @@ public class StoryRepository : IStoryRepository
 
     public async Task AddAsync(Story story, CancellationToken ct = default)
     {
+        // Avoid inserting an existing User when the navigation is attached.
+        story.User = null;
         await _dbContext.Stories.AddAsync(story, ct);
         await _dbContext.SaveChangesAsync(ct);
     }

@@ -2,6 +2,8 @@ import api, { unwrapApiResponse } from './api';
 import type { ApiResponse, AuthTokenResponse, AuthUser, User } from '../types';
 
 export interface RegisterRequest {
+  firstName: string;
+  lastName: string;
   userName: string;
   email: string;
   password: string;
@@ -28,6 +30,8 @@ export const toUser = (authUser: AuthUser): User => {
     userId: authUser.userId,
     userName: authUser.userName,
     email: authUser.email,
+    firstName: authUser.firstName ?? null,
+    lastName: authUser.lastName ?? null,
     bio: authUser.bio ?? null
   };
 };

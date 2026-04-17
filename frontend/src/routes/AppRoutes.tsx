@@ -8,6 +8,7 @@ const Home = lazy(() => import('../pages/Home'));
 const Login = lazy(() => import('../pages/Login'));
 const Register = lazy(() => import('../pages/Register'));
 const Profile = lazy(() => import('../pages/Profile'));
+const UserProfile = lazy(() => import('../pages/UserProfile'));
 const Notifications = lazy(() => import('../pages/Notifications'));
 const Friends = lazy(() => import('../pages/Friends'));
 const Stories = lazy(() => import('../pages/Stories'));
@@ -29,6 +30,7 @@ const AppRoutes = () => {
             <Route path="/friends" element={<Friends />} />
             <Route path="/stories" element={<Stories />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/users/:userId" element={<UserProfile />} />
           </Route>
         </Route>
 

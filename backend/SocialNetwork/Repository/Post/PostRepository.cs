@@ -21,6 +21,7 @@ public class PostRepository : IPostRepository
     {
         var posts = await _dbContext.Posts
             .AsNoTracking()
+            .Include(post => post.User)
             .OrderByDescending(post => post.CreatedAt)
             .ApplyPaging(pageNumber, pageSize)
             .ToListAsync(ct);
@@ -28,10 +29,45 @@ public class PostRepository : IPostRepository
         return posts;
     }
 
+    public async Task<IReadOnlyList<Post>> GetVisiblePagedAsync(
+        string viewerUserId,
+        bool isAdmin,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var query = _dbContext.Posts
+            .AsNoTracking()
+            .Include(post => post.User)
+            .OrderByDescending(post => post.CreatedAt)
+            .AsQueryable();
+
+        if (!isAdmin)
+        {
+            var friendIds = _dbContext.Friendships
+                .Where(friendship =>
+                    friendship.Status == "Accepted" &&
+                    (friendship.UserId1 == viewerUserId || friendship.UserId2 == viewerUserId))
+                .Select(friendship =>
+                    friendship.UserId1 == viewerUserId ? friendship.UserId2 : friendship.UserId1);
+
+            query = query.Where(post =>
+                post.UserId == viewerUserId ||
+                post.Privacy == null ||
+                post.Privacy == PostPrivacy.Public ||
+                (post.Privacy == PostPrivacy.Friends && friendIds.Contains(post.UserId)));
+        }
+
+        return await query
+            .ApplyPaging(pageNumber, pageSize)
+            .ToListAsync(ct);
+    }
+
     public Task<Post?> GetByIdAsync(string postId, CancellationToken ct = default)
     {
         return _dbContext.Posts
             .AsNoTracking()
+            .Include(post => post.User)
             .FirstOrDefaultAsync(p => p.PostId == postId, ct);
     }
 
@@ -44,7 +80,23 @@ public class PostRepository : IPostRepository
     {
         var posts = await _dbContext.Posts
             .AsNoTracking()
+            .Include(post => post.User)
             .Where(post => post.UserId == userId)
+            .OrderByDescending(post => post.CreatedAt)
+            .ToListAsync(ct);
+
+        return posts;
+    }
+
+    public async Task<IReadOnlyList<Post>> GetByUserIdWithPrivacyAsync(
+        string userId,
+        IReadOnlyList<string> privacyValues,
+        CancellationToken ct = default)
+    {
+        var posts = await _dbContext.Posts
+            .AsNoTracking()
+            .Include(post => post.User)
+            .Where(post => post.UserId == userId && privacyValues.Contains(post.Privacy ?? PostPrivacy.Public))
             .OrderByDescending(post => post.CreatedAt)
             .ToListAsync(ct);
 
@@ -59,6 +111,7 @@ public class PostRepository : IPostRepository
     {
         var posts = await _dbContext.Posts
             .AsNoTracking()
+            .Include(post => post.User)
             .Where(p => p.UserId == userId)
             .OrderByDescending(p => p.CreatedAt)
             .ApplyPaging(pageNumber, pageSize)
@@ -85,6 +138,8 @@ public class PostRepository : IPostRepository
 
     public async Task AddAsync(Post post, CancellationToken ct = default)
     {
+        // Avoid inserting an existing User when the navigation is attached.
+        post.User = null;
         await _dbContext.Posts.AddAsync(post, ct);
         await _dbContext.SaveChangesAsync(ct);
     }
@@ -101,6 +156,7 @@ public class PostRepository : IPostRepository
                 setter => setter
                     .SetProperty(p => p.Content, post.Content)
                     .SetProperty(p => p.ImageUrl, post.ImageUrl)
+                    .SetProperty(p => p.Privacy, post.Privacy)
                     .SetProperty(p => p.UpdatedAt, updatedAt),
                 ct);
 

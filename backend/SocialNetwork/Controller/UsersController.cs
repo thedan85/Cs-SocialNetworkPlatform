@@ -28,18 +28,35 @@ public class UsersController : ApiControllerBase
         return FromServiceResult(result);
     }
 
+    /// <summary>Search users by name or username.</summary>
+    [HttpGet("search")]
+    [ProducesResponseType(typeof(ApiResponse<List<UserResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SearchUsers(
+        [FromQuery] string query,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 50)
+    {
+        var result = await _usersService.SearchUsersAsync(query, pageNumber, pageSize, HttpContext.RequestAborted);
+        return FromServiceResult(result);
+    }
+
     /// <summary>Get a user by id.</summary>
     [HttpGet("{userId}")]
     [ProducesResponseType(typeof(ApiResponse<UserResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserById(string userId)
     {
-        if (!IsCurrentUserOrAdmin(userId))
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
         {
-            return UnauthorizedResponse("You are not allowed to access this user.");
+            return UnauthorizedResponse("User context is missing.");
         }
 
-        var result = await _usersService.GetUserByIdAsync(userId, HttpContext.RequestAborted);
+        var result = await _usersService.GetUserByIdAsync(
+            currentUserId,
+            userId,
+            User.IsInRole("Admin"),
+            HttpContext.RequestAborted);
         return FromServiceResult(result);
     }
 
@@ -75,12 +92,17 @@ public class UsersController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserPosts(string userId)
     {
-        if (!IsCurrentUserOrAdmin(userId))
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
         {
-            return UnauthorizedResponse("You are not allowed to access this user's posts.");
+            return UnauthorizedResponse("User context is missing.");
         }
 
-        var result = await _usersService.GetUserPostsAsync(userId, HttpContext.RequestAborted);
+        var result = await _usersService.GetUserPostsAsync(
+            currentUserId,
+            userId,
+            User.IsInRole("Admin"),
+            HttpContext.RequestAborted);
         return FromServiceResult(result);
     }
 }

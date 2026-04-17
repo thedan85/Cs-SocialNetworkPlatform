@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SocialNetwork.Data;
+using SocialNetwork.Extensions;
 using SocialNetwork.Model;
 
 namespace SocialNetwork.Repository;
@@ -57,6 +58,49 @@ public class UserRepository : IUserRepository
     public Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default)
     {
         return _dbContext.Users.AnyAsync(u => u.Email == email, ct);
+    }
+
+    public async Task<IReadOnlyList<User>> SearchByNameAsync(
+        string query,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return Array.Empty<User>();
+        }
+
+        var tokens = query
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var users = _dbContext.Users.AsNoTracking();
+
+        if (tokens.Length == 1)
+        {
+            var term = tokens[0];
+            users = users.Where(u =>
+                (u.FirstName != null && EF.Functions.Like(u.FirstName, $"{term}%")) ||
+                (u.LastName != null && EF.Functions.Like(u.LastName, $"{term}%")) ||
+                (u.UserName != null && EF.Functions.Like(u.UserName, $"{term}%")));
+        }
+        else
+        {
+            var first = tokens[0];
+            var last = string.Join(' ', tokens.Skip(1));
+            var fullQuery = string.Join(' ', tokens);
+
+            users = users.Where(u =>
+                (u.FirstName != null && u.LastName != null &&
+                 EF.Functions.Like(u.FirstName, $"{first}%") &&
+                 EF.Functions.Like(u.LastName, $"{last}%")) ||
+                (u.UserName != null && EF.Functions.Like(u.UserName, $"{fullQuery}%")));
+        }
+
+        return await users
+            .OrderBy(u => u.UserName)
+            .ApplyPaging(pageNumber, pageSize, defaultPageSize: 50)
+            .ToListAsync(ct);
     }
 
     public async Task UpdateProfileAsync(

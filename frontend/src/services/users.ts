@@ -2,6 +2,8 @@ import api, { unwrapApiResponse } from './api';
 import type { ApiResponse, Post, User } from '../types';
 
 export interface UserUpdateRequest {
+  firstName?: string | null;
+  lastName?: string | null;
   profilePicture?: string | null;
   bio?: string | null;
   isActive?: boolean | null;
@@ -9,6 +11,13 @@ export interface UserUpdateRequest {
 
 export const getUsers = async () => {
   const response = await api.get<ApiResponse<User[]>>('/users');
+  return unwrapApiResponse(response.data);
+};
+
+export const searchUsers = async (query: string, pageNumber = 1, pageSize = 20) => {
+  const response = await api.get<ApiResponse<User[]>>('/users/search', {
+    params: { query, pageNumber, pageSize }
+  });
   return unwrapApiResponse(response.data);
 };
 

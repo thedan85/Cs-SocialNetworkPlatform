@@ -74,8 +74,8 @@ public class StoriesServiceTests
     public async Task CreateStoryAsync_ShouldReturnValidation_WhenExpirationIsInPast()
     {
         // Arrange
-        _userRepoMock.Setup(r => r.ExistsByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                     .ReturnsAsync(true);
+        _userRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                     .ReturnsAsync(new User { Id = "user-1" });
         var request = new StoryCreateRequest 
         { 
             Content = "Old Story", 
@@ -94,8 +94,8 @@ public class StoriesServiceTests
     [Fact]
     public async Task CreateStoryAsync_ShouldSucceed_WithValidData()
     {
-        _userRepoMock.Setup(r => r.ExistsByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                     .ReturnsAsync(true);
+        _userRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                     .ReturnsAsync(new User { Id = "user-1" });
         var request = new StoryCreateRequest { Content = "New Story" };
 
         var result = await _storiesService.CreateStoryAsync("user-1", request);

@@ -108,7 +108,7 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "SocialNetwork API",
+        Title = "InteractHub API",
         Version = "v1"
     });
 
@@ -150,6 +150,7 @@ builder.Services.AddScoped<IPostRepository, PostRepository>();
 builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 builder.Services.AddScoped<ILikeRepository, LikeRepository>();
 builder.Services.AddScoped<IFriendshipRepository, FriendshipRepository>();
+builder.Services.AddScoped<IHashtagRepository, HashtagRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IPostReportRepository, PostReportRepository>();
 builder.Services.AddScoped<IStoryRepository, StoryRepository>();
@@ -160,6 +161,7 @@ builder.Services.AddScoped<IPostsService, PostsService>();
 builder.Services.AddScoped<IFriendsService, FriendsService>();
 builder.Services.AddScoped<INotificationsService, NotificationsService>();
 builder.Services.AddScoped<IStoriesService, StoriesService>();
+builder.Services.AddScoped<IHashtagsService, HashtagsService>();
 
 // Register Azure Blob Storage only if connection string is configured
 var azureBlobOptions = builder.Configuration.GetSection(AzureBlobStorageOptions.SectionName).Get<AzureBlobStorageOptions>();

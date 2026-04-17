@@ -39,6 +39,14 @@ public class ApplicationDbContext : IdentityDbContext<User>
             entity.HasIndex(e => e.UserName);
 
             entity.HasIndex(e => e.Email);
+
+            entity.HasIndex(e => new { e.FirstName, e.LastName });
+
+            entity.Property(e => e.FirstName)
+                .HasMaxLength(50);
+
+            entity.Property(e => e.LastName)
+                .HasMaxLength(50);
             
             entity.Property(e => e.ProfilePicture)
                 .HasMaxLength(500);
@@ -81,6 +89,10 @@ public class ApplicationDbContext : IdentityDbContext<User>
 
             entity.Property(e => e.ImageUrl)
                 .HasMaxLength(500);
+
+            entity.Property(e => e.Privacy)
+                .HasMaxLength(20)
+                .HasDefaultValue(PostPrivacy.Public);
 
             entity.Property(e => e.LikeCount)
                 .HasDefaultValue(0);

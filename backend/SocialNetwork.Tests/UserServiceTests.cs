@@ -12,6 +12,7 @@ public class UsersServiceTests
 {
     private readonly Mock<IUserRepository> _userRepoMock;
     private readonly Mock<IPostRepository> _postRepoMock;
+    private readonly Mock<IFriendshipRepository> _friendshipRepoMock;
     private readonly Mock<UserManager<User>> _userManagerMock;
     private readonly UsersService _usersService;
 
@@ -19,6 +20,7 @@ public class UsersServiceTests
     {
         _userRepoMock = new Mock<IUserRepository>();
         _postRepoMock = new Mock<IPostRepository>();
+        _friendshipRepoMock = new Mock<IFriendshipRepository>();
         
         // Mock UserManager cần một vài tham số giả lập để khởi tạo
         _userManagerMock = new Mock<UserManager<User>>(
@@ -28,7 +30,8 @@ public class UsersServiceTests
         _usersService = new UsersService(
             _userManagerMock.Object,
             _userRepoMock.Object,
-            _postRepoMock.Object);
+            _postRepoMock.Object,
+            _friendshipRepoMock.Object);
     }
 
     #region GetUserByIdAsync Tests
@@ -42,7 +45,7 @@ public class UsersServiceTests
                      .ReturnsAsync(user);
 
         // Act
-        var result = await _usersService.GetUserByIdAsync(userId);
+        var result = await _usersService.GetUserByIdAsync(userId, userId, false);
 
         // Assert
         Assert.True(result.Success);
@@ -57,7 +60,7 @@ public class UsersServiceTests
                      .ReturnsAsync((User?)null);
 
         // Act
-        var result = await _usersService.GetUserByIdAsync("wrong-id");
+        var result = await _usersService.GetUserByIdAsync("actor-1", "wrong-id", false);
 
         // Assert
         Assert.False(result.Success);
@@ -118,7 +121,7 @@ public class UsersServiceTests
                      .ReturnsAsync(new List<Post> { new Post { UserId = "p1" } });
 
         // Act
-        var result = await _usersService.GetUserPostsAsync(userId);
+        var result = await _usersService.GetUserPostsAsync(userId, userId, false);
 
         // Assert
         Assert.True(result.Success);

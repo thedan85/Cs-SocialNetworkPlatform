@@ -10,11 +10,13 @@ import type {
 export interface PostCreateRequest {
   content: string;
   imageUrl?: string | null;
+  privacy?: 'Public' | 'Friends' | 'Private';
 }
 
 export interface PostUpdateRequest {
   content: string;
   imageUrl?: string | null;
+  privacy?: 'Public' | 'Friends' | 'Private';
 }
 
 export interface CommentCreateRequest {

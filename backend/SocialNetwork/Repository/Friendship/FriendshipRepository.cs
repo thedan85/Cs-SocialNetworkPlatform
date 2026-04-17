@@ -18,6 +18,8 @@ public class FriendshipRepository : IFriendshipRepository
     {
         return _dbContext.Friendships
             .AsNoTracking()
+            .Include(f => f.User1)
+            .Include(f => f.User2)
             .FirstOrDefaultAsync(f => f.FriendshipId == friendshipId, ct);
     }
 
@@ -25,6 +27,8 @@ public class FriendshipRepository : IFriendshipRepository
     {
         return _dbContext.Friendships
             .AsNoTracking()
+            .Include(f => f.User1)
+            .Include(f => f.User2)
             .FirstOrDefaultAsync(
                 f => (f.UserId1 == userId1 && f.UserId2 == userId2) ||
                      (f.UserId1 == userId2 && f.UserId2 == userId1),
@@ -39,6 +43,15 @@ public class FriendshipRepository : IFriendshipRepository
             ct);
     }
 
+    public Task<bool> AreFriendsAsync(string userId1, string userId2, CancellationToken ct = default)
+    {
+        return _dbContext.Friendships.AnyAsync(
+            f => f.Status == "Accepted" &&
+                 ((f.UserId1 == userId1 && f.UserId2 == userId2) ||
+                  (f.UserId1 == userId2 && f.UserId2 == userId1)),
+            ct);
+    }
+
     public async Task<IReadOnlyList<Friendship>> GetPendingRequestsForUserAsync(
         string userId,
         int pageNumber,
@@ -47,6 +60,8 @@ public class FriendshipRepository : IFriendshipRepository
     {
         var friendships = await _dbContext.Friendships
             .AsNoTracking()
+            .Include(f => f.User1)
+            .Include(f => f.User2)
             .Where(f => f.UserId2 == userId && f.Status == "Pending")
             .OrderByDescending(f => f.CreatedAt)
             .ApplyPaging(pageNumber, pageSize, defaultPageSize: 50)
@@ -63,6 +78,8 @@ public class FriendshipRepository : IFriendshipRepository
     {
         var friendships = await _dbContext.Friendships
             .AsNoTracking()
+            .Include(f => f.User1)
+            .Include(f => f.User2)
             .Where(f => f.Status == "Accepted" && (f.UserId1 == userId || f.UserId2 == userId))
             .OrderByDescending(f => f.UpdatedAt ?? f.CreatedAt)
             .ApplyPaging(pageNumber, pageSize, defaultPageSize: 50)
@@ -73,6 +90,11 @@ public class FriendshipRepository : IFriendshipRepository
 
     public async Task AddAsync(Friendship friendship, CancellationToken ct = default)
     {
+        // Ensure we only persist the friendship row and avoid accidental inserts
+        // of related User entities when they are attached to the graph.
+        friendship.User1 = null;
+        friendship.User2 = null;
+
         await _dbContext.Friendships.AddAsync(friendship, ct);
         await _dbContext.SaveChangesAsync(ct);
     }

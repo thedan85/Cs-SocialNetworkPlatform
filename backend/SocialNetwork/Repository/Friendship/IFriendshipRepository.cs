@@ -10,6 +10,8 @@ public interface IFriendshipRepository
 
     Task<bool> ExistsBetweenUsersAsync(string userId1, string userId2, CancellationToken ct = default);
 
+    Task<bool> AreFriendsAsync(string userId1, string userId2, CancellationToken ct = default);
+
     Task<IReadOnlyList<Friendship>> GetPendingRequestsForUserAsync(
         string userId,
         int pageNumber,

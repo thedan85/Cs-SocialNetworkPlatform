@@ -11,15 +11,18 @@ public class UsersService : IUsersService
     private readonly UserManager<User> _userManager;
     private readonly IUserRepository _userRepository;
     private readonly IPostRepository _postRepository;
+    private readonly IFriendshipRepository _friendshipRepository;
 
     public UsersService(
         UserManager<User> userManager,
         IUserRepository userRepository,
-        IPostRepository postRepository)
+        IPostRepository postRepository,
+        IFriendshipRepository friendshipRepository)
     {
         _userManager = userManager;
         _userRepository = userRepository;
         _postRepository = postRepository;
+        _friendshipRepository = friendshipRepository;
     }
 
     public async Task<ServiceResult<IReadOnlyList<UserResponse>>> GetUsersAsync(CancellationToken ct = default)
@@ -33,7 +36,11 @@ public class UsersService : IUsersService
         return ServiceResult<IReadOnlyList<UserResponse>>.Ok(responses);
     }
 
-    public async Task<ServiceResult<UserResponse>> GetUserByIdAsync(string userId, CancellationToken ct = default)
+    public async Task<ServiceResult<UserResponse>> GetUserByIdAsync(
+        string actorUserId,
+        string userId,
+        bool isAdmin,
+        CancellationToken ct = default)
     {
         var user = await _userRepository.GetByIdAsync(userId, ct);
         if (user is null)
@@ -41,7 +48,28 @@ public class UsersService : IUsersService
             return ServiceResult<UserResponse>.Fail(ServiceErrorType.NotFound, "User not found.");
         }
 
-        return ServiceResult<UserResponse>.Ok(user.ToUserResponse());
+        var response = user.ToUserResponse();
+        if (!isAdmin && !string.Equals(actorUserId, userId, StringComparison.OrdinalIgnoreCase))
+        {
+            response.Email = string.Empty;
+        }
+
+        return ServiceResult<UserResponse>.Ok(response);
+    }
+
+    public async Task<ServiceResult<IReadOnlyList<UserResponse>>> SearchUsersAsync(
+        string query,
+        int pageNumber = 1,
+        int pageSize = 50,
+        CancellationToken ct = default)
+    {
+        var users = await _userRepository.SearchByNameAsync(query, pageNumber, pageSize, ct);
+
+        var responses = users
+            .Select(user => user.ToUserResponse())
+            .ToList();
+
+        return ServiceResult<IReadOnlyList<UserResponse>>.Ok(responses);
     }
 
     public async Task<ServiceResult<UserResponse>> UpdateUserAsync(
@@ -58,6 +86,16 @@ public class UsersService : IUsersService
         if (request.ProfilePicture is not null)
         {
             user.ProfilePicture = request.ProfilePicture;
+        }
+
+        if (request.FirstName is not null)
+        {
+            user.FirstName = request.FirstName;
+        }
+
+        if (request.LastName is not null)
+        {
+            user.LastName = request.LastName;
         }
 
         if (request.Bio is not null)
@@ -84,7 +122,9 @@ public class UsersService : IUsersService
     }
 
     public async Task<ServiceResult<IReadOnlyList<PostResponse>>> GetUserPostsAsync(
+        string actorUserId,
         string userId,
+        bool isAdmin,
         CancellationToken ct = default)
     {
         var userExists = await _userRepository.ExistsByIdAsync(userId, ct);
@@ -93,7 +133,20 @@ public class UsersService : IUsersService
             return ServiceResult<IReadOnlyList<PostResponse>>.Fail(ServiceErrorType.NotFound, "User not found.");
         }
 
-        var posts = await _postRepository.GetByUserIdOrderedAsync(userId, ct);
+        IReadOnlyList<Post> posts;
+
+        if (isAdmin || string.Equals(actorUserId, userId, StringComparison.OrdinalIgnoreCase))
+        {
+            posts = await _postRepository.GetByUserIdOrderedAsync(userId, ct);
+        }
+        else
+        {
+            var areFriends = await _friendshipRepository.AreFriendsAsync(actorUserId, userId, ct);
+            var allowedPrivacy = areFriends
+                ? new[] { PostPrivacy.Public, PostPrivacy.Friends }
+                : new[] { PostPrivacy.Public };
+            posts = await _postRepository.GetByUserIdWithPrivacyAsync(userId, allowedPrivacy, ct);
+        }
 
         var responses = posts
             .Select(post => post.ToPostResponse())

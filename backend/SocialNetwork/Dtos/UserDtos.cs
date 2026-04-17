@@ -8,6 +8,8 @@ public class UserResponse
     public string UserId { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
     public string? ProfilePicture { get; set; }
     public string? Bio { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -17,6 +19,12 @@ public class UserResponse
 
 public class UserUpdateRequest
 {
+    [StringLength(50)]
+    public string? FirstName { get; set; }
+
+    [StringLength(50)]
+    public string? LastName { get; set; }
+
     [StringLength(500)]
     [Url]
     public string? ProfilePicture { get; set; }

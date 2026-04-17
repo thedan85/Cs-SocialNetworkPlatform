@@ -8,6 +8,14 @@ public class RegisterRequest
 {
     [Required]
     [StringLength(50)]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(50)]
+    public string LastName { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(50)]
     public string UserName { get; set; } = string.Empty;
 
     [Required]
@@ -40,6 +48,8 @@ public class AuthUserResponse
     public string UserId { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
     public string? Bio { get; set; }
 }
 

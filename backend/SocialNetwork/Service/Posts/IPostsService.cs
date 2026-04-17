@@ -5,11 +5,17 @@ namespace SocialNetwork.Service;
 public interface IPostsService
 {
     Task<ServiceResult<IReadOnlyList<PostResponse>>> GetPostsAsync(
+        string actorUserId,
+        bool isAdmin,
         int pageNumber = 1,
         int pageSize = 20,
         CancellationToken ct = default);
 
-    Task<ServiceResult<PostResponse>> GetPostByIdAsync(string postId, CancellationToken ct = default);
+    Task<ServiceResult<PostResponse>> GetPostByIdAsync(
+        string actorUserId,
+        string postId,
+        bool isAdmin,
+        CancellationToken ct = default);
     Task<ServiceResult<PostResponse>> CreatePostAsync(string actorUserId, PostCreateRequest request, CancellationToken ct = default);
     Task<ServiceResult<PostResponse>> UpdatePostAsync(
         string actorUserId,
@@ -24,7 +30,9 @@ public interface IPostsService
         CancellationToken ct = default);
 
     Task<ServiceResult<IReadOnlyList<CommentResponse>>> GetPostCommentsAsync(
+        string actorUserId,
         string postId,
+        bool isAdmin,
         int pageNumber = 1,
         int pageSize = 20,
         CancellationToken ct = default);

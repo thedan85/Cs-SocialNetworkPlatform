@@ -18,11 +18,16 @@ export const usePosts = () => {
     }
   }, [request]);
 
-  const createPost = useCallback(async (content: string, imageUrl?: string) => {
+  const createPost = useCallback(async (
+    content: string,
+    imageUrl?: string,
+    privacy: 'Public' | 'Friends' | 'Private' = 'Public'
+  ) => {
     try {
       const newPost = await request<Post>('post', '/posts', {
         content,
-        imageUrl: imageUrl || null
+        imageUrl: imageUrl || null,
+        privacy
       });
       setPosts((current) => [newPost, ...current]);
       return newPost;

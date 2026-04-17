@@ -53,6 +53,8 @@ public class AuthController : ApiControllerBase
 
         var user = new User
         {
+            FirstName = request.FirstName,
+            LastName = request.LastName,
             UserName = request.UserName,
             Email = request.Email,
             Bio = request.Bio,
@@ -79,6 +81,8 @@ public class AuthController : ApiControllerBase
             UserId = user.Id,
             UserName = user.UserName ?? string.Empty,
             Email = user.Email ?? string.Empty,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
             Bio = user.Bio
         };
 
@@ -126,6 +130,8 @@ public class AuthController : ApiControllerBase
                 UserId = user.Id,
                 UserName = user.UserName ?? string.Empty,
                 Email = user.Email ?? string.Empty,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
                 Bio = user.Bio
             },
             Token = token

@@ -10,7 +10,9 @@ public class StoriesService : IStoriesService
     private readonly IStoryRepository _storyRepository;
     private readonly IUserRepository _userRepository;
 
-    public StoriesService(IStoryRepository storyRepository, IUserRepository userRepository)
+    public StoriesService(
+        IStoryRepository storyRepository,
+        IUserRepository userRepository)
     {
         _storyRepository = storyRepository;
         _userRepository = userRepository;
@@ -65,8 +67,8 @@ public class StoriesService : IStoriesService
         StoryCreateRequest request,
         CancellationToken ct = default)
     {
-        var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
-        if (!userExists)
+        var user = await _userRepository.GetByIdAsync(actorUserId, ct);
+        if (user is null)
         {
             return ServiceResult<StoryResponse>.Fail(ServiceErrorType.NotFound, "User not found.");
         }
@@ -89,7 +91,20 @@ public class StoriesService : IStoriesService
 
         await _storyRepository.AddAsync(story, ct);
 
-        return ServiceResult<StoryResponse>.Ok(story.ToStoryResponse());
+        var response = new StoryResponse
+        {
+            StoryId = story.StoryId,
+            UserId = story.UserId,
+            UserName = user.UserName,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Content = story.Content,
+            ImageUrl = story.ImageUrl,
+            CreatedAt = story.CreatedAt,
+            ExpiresAt = story.ExpiresAt
+        };
+
+        return ServiceResult<StoryResponse>.Ok(response);
     }
 
     public async Task<ServiceResult<string>> DeleteStoryAsync(

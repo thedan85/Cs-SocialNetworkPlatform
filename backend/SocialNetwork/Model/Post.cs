@@ -9,6 +9,8 @@ public class Post
     public string Content { get; set; } = string.Empty;
     
     public string? ImageUrl { get; set; }
+
+    public string Privacy { get; set; } = PostPrivacy.Public;
     
     public int LikeCount { get; set; } = 0;
     

@@ -22,6 +22,7 @@ public class CommentRepository : ICommentRepository
     {
         var comments = await _dbContext.Comments
             .AsNoTracking()
+            .Include(comment => comment.User)
             .Where(comment => comment.PostId == postId)
             .OrderByDescending(comment => comment.CreatedAt)
             .ApplyPaging(pageNumber, pageSize)
@@ -32,6 +33,8 @@ public class CommentRepository : ICommentRepository
 
     public async Task AddAsync(Comment comment, CancellationToken ct = default)
     {
+        // Avoid inserting an existing User when the navigation is attached.
+        comment.User = null;
         await _dbContext.Comments.AddAsync(comment, ct);
         await _dbContext.SaveChangesAsync(ct);
     }

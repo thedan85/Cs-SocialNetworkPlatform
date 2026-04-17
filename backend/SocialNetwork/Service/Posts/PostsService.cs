@@ -1,5 +1,6 @@
 using SocialNetwork.Dtos;
 using SocialNetwork.Extensions;
+using SocialNetwork.Helpers;
 using SocialNetwork.Model;
 using SocialNetwork.Repository;
 
@@ -12,6 +13,8 @@ public class PostsService : IPostsService
     private readonly ICommentRepository _commentRepository;
     private readonly ILikeRepository _likeRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IHashtagRepository _hashtagRepository;
+    private readonly IFriendshipRepository _friendshipRepository;
     private readonly IPostReportRepository _postReportRepository;
 
     public PostsService(
@@ -20,6 +23,8 @@ public class PostsService : IPostsService
         ICommentRepository commentRepository,
         ILikeRepository likeRepository,
         IUserRepository userRepository,
+        IHashtagRepository hashtagRepository,
+        IFriendshipRepository friendshipRepository,
         IPostReportRepository postReportRepository)
     {
         _unitOfWork = unitOfWork;
@@ -27,15 +32,26 @@ public class PostsService : IPostsService
         _commentRepository = commentRepository;
         _likeRepository = likeRepository;
         _userRepository = userRepository;
+        _hashtagRepository = hashtagRepository;
+        _friendshipRepository = friendshipRepository;
         _postReportRepository = postReportRepository;
     }
 
     public async Task<ServiceResult<IReadOnlyList<PostResponse>>> GetPostsAsync(
+        string actorUserId,
+        bool isAdmin,
         int pageNumber = 1,
         int pageSize = 20,
         CancellationToken ct = default)
     {
-        var posts = await _postRepository.GetPagedAsync(pageNumber, pageSize, ct);
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<IReadOnlyList<PostResponse>>.Fail(
+                ServiceErrorType.Unauthorized,
+                "User context is missing.");
+        }
+
+        var posts = await _postRepository.GetVisiblePagedAsync(actorUserId, isAdmin, pageNumber, pageSize, ct);
 
         var responses = posts
             .Select(post => post.ToPostResponse())
@@ -44,15 +60,26 @@ public class PostsService : IPostsService
         return ServiceResult<IReadOnlyList<PostResponse>>.Ok(responses);
     }
 
-    public async Task<ServiceResult<PostResponse>> GetPostByIdAsync(string postId, CancellationToken ct = default)
+    public async Task<ServiceResult<PostResponse>> GetPostByIdAsync(
+        string actorUserId,
+        string postId,
+        bool isAdmin,
+        CancellationToken ct = default)
     {
-        var post = await _postRepository.GetByIdAsync(postId, ct);
-        if (post is null)
+        if (string.IsNullOrWhiteSpace(actorUserId))
         {
-            return ServiceResult<PostResponse>.Fail(ServiceErrorType.NotFound, "Post not found.");
+            return ServiceResult<PostResponse>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
         }
 
-        return ServiceResult<PostResponse>.Ok(post.ToPostResponse());
+        var postResult = await GetVisiblePostAsync(actorUserId, postId, isAdmin, ct);
+        if (!postResult.Success || postResult.Data is null)
+        {
+            return ServiceResult<PostResponse>.Fail(
+                postResult.ErrorType ?? ServiceErrorType.Validation,
+                postResult.Errors);
+        }
+
+        return ServiceResult<PostResponse>.Ok(postResult.Data.ToPostResponse());
     }
 
     public async Task<ServiceResult<PostResponse>> CreatePostAsync(
@@ -65,8 +92,8 @@ public class PostsService : IPostsService
             return ServiceResult<PostResponse>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
         }
 
-        var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
-        if (!userExists)
+        var user = await _userRepository.GetByIdAsync(actorUserId, ct);
+        if (user is null)
         {
             return ServiceResult<PostResponse>.Fail(ServiceErrorType.NotFound, "User not found.");
         }
@@ -76,12 +103,57 @@ public class PostsService : IPostsService
             UserId = actorUserId,
             Content = request.Content,
             ImageUrl = request.ImageUrl,
+            Privacy = NormalizePrivacy(request.Privacy) ?? PostPrivacy.Public,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
-        await _postRepository.AddAsync(post, ct);
-        return ServiceResult<PostResponse>.Ok(post.ToPostResponse());
+        if (!IsPrivacyAllowed(post.Privacy))
+        {
+            return ServiceResult<PostResponse>.Fail(ServiceErrorType.Validation, "Invalid privacy setting.");
+        }
+
+        var tags = HashtagHelper.ExtractTags(request.Content);
+
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(ct);
+
+        try
+        {
+            await _postRepository.AddAsync(post, ct);
+
+            if (tags.Count > 0)
+            {
+                var hashtags = await _hashtagRepository.AddOrUpdateAsync(tags, ct);
+                await _hashtagRepository.AddPostHashtagsAsync(
+                    post.PostId,
+                    hashtags.Select(tag => tag.HashtagId),
+                    ct);
+            }
+
+            await transaction.CommitAsync(ct);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
+
+        var response = new PostResponse
+        {
+            PostId = post.PostId,
+            UserId = post.UserId,
+            UserName = user.UserName,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Content = post.Content,
+            ImageUrl = post.ImageUrl,
+            Privacy = post.Privacy,
+            LikeCount = post.LikeCount,
+            CreatedAt = post.CreatedAt,
+            UpdatedAt = post.UpdatedAt
+        };
+
+        return ServiceResult<PostResponse>.Ok(response);
     }
 
     public async Task<ServiceResult<PostResponse>> UpdatePostAsync(
@@ -111,6 +183,17 @@ public class PostsService : IPostsService
 
         existingPost.Content = request.Content;
         existingPost.ImageUrl = request.ImageUrl;
+        if (!string.IsNullOrWhiteSpace(request.Privacy))
+        {
+            var privacy = NormalizePrivacy(request.Privacy);
+            if (privacy is null || !IsPrivacyAllowed(privacy))
+            {
+                return ServiceResult<PostResponse>.Fail(ServiceErrorType.Validation, "Invalid privacy setting.");
+            }
+
+            existingPost.Privacy = privacy;
+        }
+
         existingPost.UpdatedAt = now;
 
         await _postRepository.UpdateAsync(existingPost, ct);
@@ -144,15 +227,26 @@ public class PostsService : IPostsService
     }
 
     public async Task<ServiceResult<IReadOnlyList<CommentResponse>>> GetPostCommentsAsync(
+        string actorUserId,
         string postId,
+        bool isAdmin,
         int pageNumber = 1,
         int pageSize = 20,
         CancellationToken ct = default)
     {
-        var post = await _postRepository.GetByIdAsync(postId, ct);
-        if (post is null)
+        if (string.IsNullOrWhiteSpace(actorUserId))
         {
-            return ServiceResult<IReadOnlyList<CommentResponse>>.Fail(ServiceErrorType.NotFound, "Post not found.");
+            return ServiceResult<IReadOnlyList<CommentResponse>>.Fail(
+                ServiceErrorType.Unauthorized,
+                "User context is missing.");
+        }
+
+        var postResult = await GetVisiblePostAsync(actorUserId, postId, isAdmin, ct);
+        if (!postResult.Success)
+        {
+            return ServiceResult<IReadOnlyList<CommentResponse>>.Fail(
+                postResult.ErrorType ?? ServiceErrorType.Validation,
+                postResult.Errors);
         }
 
         var comments = await _commentRepository.GetByPostIdAsync(postId, pageNumber, pageSize, ct);
@@ -181,8 +275,16 @@ public class PostsService : IPostsService
             return ServiceResult<CommentResponse>.Fail(ServiceErrorType.NotFound, "Post not found.");
         }
 
-        var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
-        if (!userExists)
+        var canView = await IsPostVisibleAsync(post, actorUserId, false, ct);
+        if (!canView)
+        {
+            return ServiceResult<CommentResponse>.Fail(
+                ServiceErrorType.Unauthorized,
+                "You are not allowed to comment on this post.");
+        }
+
+        var user = await _userRepository.GetByIdAsync(actorUserId, ct);
+        if (user is null)
         {
             return ServiceResult<CommentResponse>.Fail(ServiceErrorType.NotFound, "User not found.");
         }
@@ -200,7 +302,21 @@ public class PostsService : IPostsService
 
         await _commentRepository.AddAsync(comment, ct);
 
-        return ServiceResult<CommentResponse>.Ok(comment.ToCommentResponse());
+        var response = new CommentResponse
+        {
+            CommentId = comment.CommentId,
+            PostId = comment.PostId,
+            UserId = comment.UserId,
+            UserName = user.UserName,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Content = comment.Content,
+            LikeCount = comment.LikeCount,
+            CreatedAt = comment.CreatedAt,
+            UpdatedAt = comment.UpdatedAt
+        };
+
+        return ServiceResult<CommentResponse>.Ok(response);
     }
 
     public async Task<ServiceResult<string>> DeleteCommentAsync(
@@ -239,12 +355,21 @@ public class PostsService : IPostsService
 
         try
         {
-            var postExists = await _postRepository.ExistsByIdAsync(postId, ct);
+            var post = await _postRepository.GetByIdAsync(postId, ct);
 
-            if (!postExists)
+            if (post is null)
             {
                 await transaction.RollbackAsync(ct);
                 return ServiceResult<LikePostResult>.Fail(ServiceErrorType.NotFound, "Post not found.");
+            }
+
+            var canView = await IsPostVisibleAsync(post, actorUserId, false, ct);
+            if (!canView)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<LikePostResult>.Fail(
+                    ServiceErrorType.Unauthorized,
+                    "You are not allowed to like this post.");
             }
 
             var existingLike = await _likeRepository.GetByPostAndUserAsync(postId, actorUserId, ct);
@@ -310,6 +435,14 @@ public class PostsService : IPostsService
             return ServiceResult<PostReportResponse>.Fail(ServiceErrorType.NotFound, "Post not found.");
         }
 
+        var canView = await IsPostVisibleAsync(post, actorUserId, false, ct);
+        if (!canView)
+        {
+            return ServiceResult<PostReportResponse>.Fail(
+                ServiceErrorType.Unauthorized,
+                "You are not allowed to report this post.");
+        }
+
         var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
         if (!userExists)
         {
@@ -341,5 +474,86 @@ public class PostsService : IPostsService
         await _postReportRepository.AddAsync(postReport, ct);
 
         return ServiceResult<PostReportResponse>.Ok(postReport.ToPostReportResponse());
+    }
+
+    private async Task<ServiceResult<Post>> GetVisiblePostAsync(
+        string actorUserId,
+        string postId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        var post = await _postRepository.GetByIdAsync(postId, ct);
+        if (post is null)
+        {
+            return ServiceResult<Post>.Fail(ServiceErrorType.NotFound, "Post not found.");
+        }
+
+        var canView = await IsPostVisibleAsync(post, actorUserId, isAdmin, ct);
+        if (!canView)
+        {
+            return ServiceResult<Post>.Fail(ServiceErrorType.Unauthorized, "You are not allowed to view this post.");
+        }
+
+        return ServiceResult<Post>.Ok(post);
+    }
+
+    private async Task<bool> IsPostVisibleAsync(
+        Post post,
+        string actorUserId,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        var privacy = string.IsNullOrWhiteSpace(post.Privacy)
+            ? PostPrivacy.Public
+            : post.Privacy;
+
+        if (isAdmin || string.Equals(post.UserId, actorUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.Equals(privacy, PostPrivacy.Public, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.Equals(privacy, PostPrivacy.Friends, StringComparison.OrdinalIgnoreCase))
+        {
+            return await _friendshipRepository.AreFriendsAsync(actorUserId, post.UserId, ct);
+        }
+
+        return false;
+    }
+
+    private static bool IsPrivacyAllowed(string privacy)
+    {
+        return PostPrivacy.Allowed.Any(value =>
+            string.Equals(value, privacy, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string? NormalizePrivacy(string? privacy)
+    {
+        if (string.IsNullOrWhiteSpace(privacy))
+        {
+            return null;
+        }
+
+        var trimmed = privacy.Trim();
+        if (string.Equals(trimmed, PostPrivacy.Public, StringComparison.OrdinalIgnoreCase))
+        {
+            return PostPrivacy.Public;
+        }
+
+        if (string.Equals(trimmed, PostPrivacy.Friends, StringComparison.OrdinalIgnoreCase))
+        {
+            return PostPrivacy.Friends;
+        }
+
+        if (string.Equals(trimmed, PostPrivacy.Private, StringComparison.OrdinalIgnoreCase))
+        {
+            return PostPrivacy.Private;
+        }
+
+        return trimmed;
     }
 }

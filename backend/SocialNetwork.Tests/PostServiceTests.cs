@@ -18,6 +18,8 @@ public class PostsServiceTests
     private readonly Mock<ICommentRepository> _commentRepoMock;
     private readonly Mock<ILikeRepository> _likeRepoMock;
     private readonly Mock<IUserRepository> _userRepoMock;
+    private readonly Mock<IHashtagRepository> _hashtagRepoMock;
+    private readonly Mock<IFriendshipRepository> _friendshipRepoMock;
     private readonly Mock<IPostReportRepository> _reportRepoMock;
     private readonly PostsService _postsService;
 
@@ -28,6 +30,8 @@ public class PostsServiceTests
         _commentRepoMock = new Mock<ICommentRepository>();
         _likeRepoMock = new Mock<ILikeRepository>();
         _userRepoMock = new Mock<IUserRepository>();
+        _hashtagRepoMock = new Mock<IHashtagRepository>();
+        _friendshipRepoMock = new Mock<IFriendshipRepository>();
         _reportRepoMock = new Mock<IPostReportRepository>();
 
         _postsService = new PostsService(
@@ -36,6 +40,8 @@ public class PostsServiceTests
             _commentRepoMock.Object,
             _likeRepoMock.Object,
             _userRepoMock.Object,
+            _hashtagRepoMock.Object,
+                _friendshipRepoMock.Object,
             _reportRepoMock.Object);
     }
 
@@ -46,12 +52,13 @@ public class PostsServiceTests
     {
         // Arrange
         var postId = "post-123";
-        var post = new Post { Content = "Hello world" }; // Giả sử Post không có Id property hoặc Id được set tự động
+        var actorUserId = "user-1";
+        var post = new Post { Content = "Hello world", UserId = actorUserId };
         _postRepoMock.Setup(r => r.GetByIdAsync(postId, It.IsAny<CancellationToken>()))
                      .ReturnsAsync(post);
 
         // Act
-        var result = await _postsService.GetPostByIdAsync(postId);
+        var result = await _postsService.GetPostByIdAsync(actorUserId, postId, false);
 
         // Assert
         Assert.True(result.Success);
@@ -67,7 +74,7 @@ public class PostsServiceTests
                      .ReturnsAsync((Post?)null);
 
         // Act
-        var result = await _postsService.GetPostByIdAsync("invalid-id");
+        var result = await _postsService.GetPostByIdAsync("user-1", "invalid-id", false);
 
         // Assert
         Assert.False(result.Success);
@@ -76,16 +83,16 @@ public class PostsServiceTests
 
     [Fact] 
     public async Task GetPostsAsync_ShouldReturnSuccess() { 
-        _postRepoMock.Setup(r => r.GetPagedAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+        _postRepoMock.Setup(r => r.GetVisiblePagedAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                      .ReturnsAsync(new List<Post>());
-        var result = await _postsService.GetPostsAsync();
+        var result = await _postsService.GetPostsAsync("user-1", false);
         Assert.True(result.Success);
     }
     
     [Fact] 
-    public async Task GetPostCommentsAsync_ShouldFail_WhenPostNotFound() {
-        _postRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((Post?)null);
-        var result = await _postsService.GetPostCommentsAsync("1");
+      public async Task GetPostCommentsAsync_ShouldFail_WhenPostNotFound() {
+          _postRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((Post?)null);
+          var result = await _postsService.GetPostCommentsAsync("user-1", "1", false);
         Assert.Equal(ServiceErrorType.NotFound, result.ErrorType);
     }
     #endregion
@@ -108,8 +115,8 @@ public class PostsServiceTests
     public async Task CreatePostAsync_ShouldReturnNotFound_WhenUserDoesNotExist()
     {
         // Arrange
-        _userRepoMock.Setup(r => r.ExistsByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                     .ReturnsAsync(false);
+        _userRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                     .ReturnsAsync((User?)null);
 
         // Act
         var result = await _postsService.CreatePostAsync("user-1", new PostCreateRequest { Content = "Test" });
@@ -133,7 +140,11 @@ public class PostsServiceTests
     }
 
      [Fact] public async Task CreatePostAsync_ShouldSucceed_WhenDataIsValid() {
-        _userRepoMock.Setup(r => r.ExistsByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var mockTransaction = new Mock<IDbContextTransaction>();
+        _unitOfWorkMock.Setup(u => u.BeginTransactionAsync(It.IsAny<CancellationToken>()))
+                        .ReturnsAsync(mockTransaction.Object);
+        _userRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                     .ReturnsAsync(new User { Id = "u1" });
         var result = await _postsService.CreatePostAsync("u1", new PostCreateRequest { Content = "C" });
         Assert.True(result.Success);
     }
@@ -213,7 +224,7 @@ public class PostsServiceTests
         _userRepoMock.Setup(r => r.ExistsByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _unitOfWorkMock.Setup(u => u.BeginTransactionAsync(It.IsAny<CancellationToken>()))
                        .ReturnsAsync(mockTransaction.Object);
-        _postRepoMock.Setup(r => r.ExistsByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        _postRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((Post?)null);
 
         // Act
         var result = await _postsService.LikePostAsync("user-1", "invalid-post", new LikeCreateRequest());
@@ -232,10 +243,11 @@ public class PostsServiceTests
         var postId = "post-1";
         var mockTransaction = new Mock<IDbContextTransaction>();
         var existingLike = new Like { PostId = postId, UserId = userId };
+        var post = new Post { PostId = postId, UserId = userId };
 
         _userRepoMock.Setup(r => r.ExistsByIdAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
         _unitOfWorkMock.Setup(u => u.BeginTransactionAsync(It.IsAny<CancellationToken>())).ReturnsAsync(mockTransaction.Object);
-        _postRepoMock.Setup(r => r.ExistsByIdAsync(postId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        _postRepoMock.Setup(r => r.GetByIdAsync(postId, It.IsAny<CancellationToken>())).ReturnsAsync(post);
         _likeRepoMock.Setup(r => r.GetByPostAndUserAsync(postId, userId, It.IsAny<CancellationToken>())).ReturnsAsync(existingLike);
 
         // Act

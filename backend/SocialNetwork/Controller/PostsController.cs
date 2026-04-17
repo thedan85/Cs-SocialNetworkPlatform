@@ -22,7 +22,18 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<List<PostResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPosts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
     {
-        var result = await _postsService.GetPostsAsync(pageNumber, pageSize, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _postsService.GetPostsAsync(
+            currentUserId,
+            User.IsInRole("Admin"),
+            pageNumber,
+            pageSize,
+            HttpContext.RequestAborted);
         return FromServiceResult(result);
     }
 
@@ -32,7 +43,17 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPostById(string postId)
     {
-        var result = await _postsService.GetPostByIdAsync(postId, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _postsService.GetPostByIdAsync(
+            currentUserId,
+            postId,
+            User.IsInRole("Admin"),
+            HttpContext.RequestAborted);
         return FromServiceResult(result);
     }
 
@@ -120,7 +141,19 @@ public class PostsController : ApiControllerBase
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20)
     {
-        var result = await _postsService.GetPostCommentsAsync(postId, pageNumber, pageSize, HttpContext.RequestAborted);
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _postsService.GetPostCommentsAsync(
+            currentUserId,
+            postId,
+            User.IsInRole("Admin"),
+            pageNumber,
+            pageSize,
+            HttpContext.RequestAborted);
         return FromServiceResult(result);
     }
 

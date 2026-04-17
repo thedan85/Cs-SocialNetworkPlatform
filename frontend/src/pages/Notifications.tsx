@@ -48,22 +48,22 @@ const Notifications = () => {
   };
 
   if (!user) {
-    return <div className="text-center text-gray-600">Sign in to view notifications.</div>;
+    return <div className="text-center text-slate-600 dark:text-slate-400">Sign in to view notifications.</div>;
   }
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
-      <h1 className="text-2xl font-bold text-gray-800">Notifications</h1>
+      <h1 className="text-2xl font-bold text-slate-900 tracking-tight dark:text-slate-100">Notifications</h1>
 
-      {loading && <div className="text-gray-600">Loading notifications...</div>}
+      {loading && <div className="text-slate-600 dark:text-slate-400">Loading notifications...</div>}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-xl border border-rose-200/70 bg-rose-50/70 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
           {error}
         </div>
       )}
 
       {!loading && items.length === 0 && (
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-gray-600">
+        <div className="rounded-2xl border border-white/60 bg-white/70 px-4 py-6 text-center text-slate-600 backdrop-blur-xl dark:border-slate-800/60 dark:bg-slate-900/60 dark:text-slate-300">
           No notifications yet.
         </div>
       )}
@@ -72,17 +72,19 @@ const Notifications = () => {
         {items.map((item) => (
           <div
             key={item.notificationId}
-            className={`rounded-lg border px-4 py-3 shadow-sm ${
-              item.isRead ? 'border-gray-200 bg-white' : 'border-blue-200 bg-blue-50'
+            className={`rounded-2xl border px-4 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl ${
+              item.isRead
+                ? 'border-white/60 bg-white/70 dark:border-slate-800/60 dark:bg-slate-900/60'
+                : 'border-cyan-200/70 bg-cyan-50/70 dark:border-cyan-500/30 dark:bg-cyan-500/10'
             }`}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold text-gray-800">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                   {item.type || 'Notification'}
                 </p>
-                <p className="text-sm text-gray-600">{item.content || 'No details provided.'}</p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-sm text-slate-600 dark:text-slate-300">{item.content || 'No details provided.'}</p>
+                <p className="text-xs text-slate-400 mt-1 dark:text-slate-500">
                   {new Date(item.createdAt).toLocaleString()}
                 </p>
               </div>
@@ -90,14 +92,14 @@ const Notifications = () => {
                 {!item.isRead && (
                   <button
                     onClick={() => handleMarkRead(item.notificationId)}
-                    className="rounded-md border border-blue-200 bg-white px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                    className="rounded-md border border-cyan-200/70 bg-white/80 px-3 py-1 text-xs font-medium text-cyan-700 hover:bg-cyan-50 dark:border-cyan-500/30 dark:bg-slate-900/60 dark:text-cyan-200 dark:hover:bg-cyan-500/10"
                   >
                     Mark read
                   </button>
                 )}
                 <button
                   onClick={() => handleDelete(item.notificationId)}
-                  className="rounded-md border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                  className="rounded-md border border-rose-200/70 bg-white/80 px-3 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:bg-slate-900/60 dark:text-rose-300 dark:hover:bg-rose-500/10"
                 >
                   Delete
                 </button>

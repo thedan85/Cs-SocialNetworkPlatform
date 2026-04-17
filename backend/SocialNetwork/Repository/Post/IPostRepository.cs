@@ -9,11 +9,23 @@ public interface IPostRepository
         int pageSize,
         CancellationToken ct = default);
 
+    Task<IReadOnlyList<Post>> GetVisiblePagedAsync(
+        string viewerUserId,
+        bool isAdmin,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
+
     Task<Post?> GetByIdAsync(string postId, CancellationToken ct = default);
 
     Task<bool> ExistsByIdAsync(string postId, CancellationToken ct = default);
 
     Task<IReadOnlyList<Post>> GetByUserIdOrderedAsync(string userId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<Post>> GetByUserIdWithPrivacyAsync(
+        string userId,
+        IReadOnlyList<string> privacyValues,
+        CancellationToken ct = default);
 
     Task<IReadOnlyList<Post>> GetByUserIdAsync(
         string userId,

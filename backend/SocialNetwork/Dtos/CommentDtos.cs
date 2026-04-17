@@ -18,6 +18,9 @@ public class CommentResponse
     public string CommentId { get; set; } = string.Empty;
     public string PostId { get; set; } = string.Empty;
     public string UserId { get; set; } = string.Empty;
+    public string? UserName { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
     public string Content { get; set; } = string.Empty;
     public int LikeCount { get; set; }
     public DateTime CreatedAt { get; set; }
