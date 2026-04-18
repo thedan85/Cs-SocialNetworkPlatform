@@ -49,9 +49,35 @@ public interface IPostsService
         string postId,
         LikeCreateRequest request,
         CancellationToken ct = default);
+    Task<ServiceResult<SharePostResult>> SharePostAsync(
+        string actorUserId,
+        string postId,
+        CancellationToken ct = default);
+    Task<ServiceResult<string>> UnlikePostAsync(
+        string actorUserId,
+        string postId,
+        CancellationToken ct = default);
+    Task<ServiceResult<string>> UnsharePostAsync(
+        string actorUserId,
+        string postId,
+        CancellationToken ct = default);
     Task<ServiceResult<PostReportResponse>> ReportPostAsync(
         string actorUserId,
         string postId,
         PostReportCreateRequest request,
+        CancellationToken ct = default);
+
+    Task<ServiceResult<IReadOnlyList<PostReportDetailResponse>>> GetPendingPostReportsAsync(
+        string actorUserId,
+        bool isAdmin,
+        int pageNumber = 1,
+        int pageSize = 20,
+        CancellationToken ct = default);
+
+    Task<ServiceResult<string>> ReviewPostReportAsync(
+        string actorUserId,
+        string postReportId,
+        bool reviewed,
+        bool isAdmin,
         CancellationToken ct = default);
 }

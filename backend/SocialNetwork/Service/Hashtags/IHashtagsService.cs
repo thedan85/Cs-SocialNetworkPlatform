@@ -10,4 +10,9 @@ public interface IHashtagsService
         int pageSize = 10,
         int postsPerHashtag = 3,
         CancellationToken ct = default);
+
+    Task<ServiceResult<IReadOnlyList<HashtagTrendingResponse>>> GetTrendingHashtagsAsync(
+        int pageNumber = 1,
+        int pageSize = 10,
+        CancellationToken ct = default);
 }

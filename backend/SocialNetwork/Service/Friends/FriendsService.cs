@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.SignalR;
 using SocialNetwork.Dtos;
 using SocialNetwork.Extensions;
 using SocialNetwork.Helpers;
+using SocialNetwork.Hubs;
 using SocialNetwork.Model;
 using SocialNetwork.Repository;
 
@@ -12,17 +14,20 @@ public class FriendsService : IFriendsService
     private readonly IFriendshipRepository _friendshipRepository;
     private readonly IUserRepository _userRepository;
     private readonly INotificationRepository _notificationRepository;
+    private readonly IHubContext<NotificationsHub> _notificationsHub;
 
     public FriendsService(
         IUnitOfWork unitOfWork,
         IFriendshipRepository friendshipRepository,
         IUserRepository userRepository,
-        INotificationRepository notificationRepository)
+        INotificationRepository notificationRepository,
+        IHubContext<NotificationsHub> notificationsHub)
     {
         _unitOfWork = unitOfWork;
         _friendshipRepository = friendshipRepository;
         _userRepository = userRepository;
         _notificationRepository = notificationRepository;
+        _notificationsHub = notificationsHub;
     }
 
     public async Task<ServiceResult<FriendshipResponse>> CreateFriendRequestAsync(
@@ -89,6 +94,10 @@ public class FriendsService : IFriendsService
             };
 
             await _notificationRepository.AddAsync(notification, ct);
+            var notificationResponse = notification.ToNotificationResponse();
+            await _notificationsHub.Clients
+                .Group(NotificationsHub.GroupName(notification.RecipientUserId))
+                .SendAsync("notification:created", notificationResponse, ct);
             await transaction.CommitAsync(ct);
         }
         catch
@@ -172,6 +181,10 @@ public class FriendsService : IFriendsService
             };
 
             await _notificationRepository.AddAsync(notification, ct);
+            var notificationResponse = notification.ToNotificationResponse();
+            await _notificationsHub.Clients
+                .Group(NotificationsHub.GroupName(notification.RecipientUserId))
+                .SendAsync("notification:created", notificationResponse, ct);
             await transaction.CommitAsync(ct);
         }
         catch

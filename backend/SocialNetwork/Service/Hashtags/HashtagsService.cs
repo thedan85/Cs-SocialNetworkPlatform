@@ -45,4 +45,23 @@ public class HashtagsService : IHashtagsService
 
         return ServiceResult<IReadOnlyList<HashtagSearchResponse>>.Ok(responses);
     }
+
+    public async Task<ServiceResult<IReadOnlyList<HashtagTrendingResponse>>> GetTrendingHashtagsAsync(
+        int pageNumber = 1,
+        int pageSize = 10,
+        CancellationToken ct = default)
+    {
+        var hashtags = await _hashtagRepository.GetTrendingAsync(pageNumber, pageSize, ct);
+
+        var responses = hashtags
+            .Select(hashtag => new HashtagTrendingResponse
+            {
+                HashtagId = hashtag.HashtagId,
+                Tag = hashtag.Tag,
+                UsageCount = hashtag.UsageCount
+            })
+            .ToList();
+
+        return ServiceResult<IReadOnlyList<HashtagTrendingResponse>>.Ok(responses);
+    }
 }

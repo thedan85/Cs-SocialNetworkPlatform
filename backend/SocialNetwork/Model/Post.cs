@@ -20,6 +20,7 @@ public class Post
 
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<Like> Likes { get; set; } = new List<Like>();
+    public ICollection<PostShare> Shares { get; set; } = new List<PostShare>();
     public ICollection<PostHashtag> PostHashtags { get; set; } = new List<PostHashtag>();
     
     // Navigation property

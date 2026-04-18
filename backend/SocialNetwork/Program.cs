@@ -12,6 +12,7 @@ using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using SocialNetwork.Data;
 using SocialNetwork.Dtos;
 using SocialNetwork.Helpers;
+using SocialNetwork.Hubs;
 using SocialNetwork.Model;
 using SocialNetwork.Service;
 using SocialNetwork.Settings;
@@ -82,6 +83,7 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddSignalR();
 builder.Services.AddControllers();
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
@@ -149,6 +151,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPostRepository, PostRepository>();
 builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 builder.Services.AddScoped<ILikeRepository, LikeRepository>();
+builder.Services.AddScoped<IPostShareRepository, PostShareRepository>();
 builder.Services.AddScoped<IFriendshipRepository, FriendshipRepository>();
 builder.Services.AddScoped<IHashtagRepository, HashtagRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
@@ -211,6 +214,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationsHub>("/hubs/notifications");
 
 await DatabaseSeeder.SeedAsync(app.Services);
 

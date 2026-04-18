@@ -17,6 +17,11 @@ public interface IPostReportRepository
         int pageSize,
         CancellationToken ct = default);
 
+    Task<IReadOnlyList<PostReport>> GetPendingWithDetailsAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
+
     Task<int> CountPendingAsync(CancellationToken ct = default);
 
     Task<bool> ExistsByPostAndReporterAsync(string postId, string reporterUserId, CancellationToken ct = default);

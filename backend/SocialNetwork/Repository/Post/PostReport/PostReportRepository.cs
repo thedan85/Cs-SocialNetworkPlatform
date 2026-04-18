@@ -53,6 +53,25 @@ public class PostReportRepository : IPostReportRepository
         return reports;
     }
 
+    public async Task<IReadOnlyList<PostReport>> GetPendingWithDetailsAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var reports = await _dbContext.PostReports
+            .AsNoTracking()
+            .Include(r => r.ReporterUser)
+            .Include(r => r.Post)
+            .ThenInclude(post => post.User)
+            .Where(r => !r.Status)
+            .OrderByDescending(r => r.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return reports;
+    }
+
     public Task<int> CountPendingAsync(CancellationToken ct = default)
     {
         return _dbContext.PostReports.CountAsync(r => !r.Status, ct);

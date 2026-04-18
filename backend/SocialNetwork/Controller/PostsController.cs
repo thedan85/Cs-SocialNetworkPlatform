@@ -234,6 +234,80 @@ public class PostsController : ApiControllerBase
         return OkResponse(result.Data.Like);
     }
 
+    /// <summary>Unlike a post.</summary>
+    [HttpDelete("{postId}/likes")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UnlikePost(string postId)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _postsService.UnlikePostAsync(currentUserId, postId, HttpContext.RequestAborted);
+        if (!result.Success)
+        {
+            return FromServiceResult(result);
+        }
+
+        return OkResponse(new { message = result.Data });
+    }
+
+    /// <summary>Share a post.</summary>
+    [HttpPost("{postId}/shares")]
+    [ProducesResponseType(typeof(ApiResponse<PostShareResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<PostShareResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SharePost(string postId)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _postsService.SharePostAsync(currentUserId, postId, HttpContext.RequestAborted);
+        if (!result.Success)
+        {
+            return FromServiceResult(result);
+        }
+
+        if (result.Data is null)
+        {
+            return BadRequestResponse("Unable to process share.");
+        }
+
+        if (result.Data.IsCreated)
+        {
+            return CreatedResponse(result.Data.Share);
+        }
+
+        return OkResponse(result.Data.Share);
+    }
+
+    /// <summary>Unshare a post.</summary>
+    [HttpDelete("{postId}/shares")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UnsharePost(string postId)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _postsService.UnsharePostAsync(currentUserId, postId, HttpContext.RequestAborted);
+        if (!result.Success)
+        {
+            return FromServiceResult(result);
+        }
+
+        return OkResponse(new { message = result.Data });
+    }
+
     /// <summary>Report a post.</summary>
     [HttpPost("{postId}/report")]
     [ProducesResponseType(typeof(ApiResponse<PostReportResponse>), StatusCodes.Status201Created)]

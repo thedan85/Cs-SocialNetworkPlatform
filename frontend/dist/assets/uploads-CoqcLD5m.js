@@ -1,0 +1,1 @@
+import{a as o,u as s}from"./index-Bs0LXsTo.js";const n=async t=>{const a=new FormData;a.append("file",t);const e=await o.post("/uploads/images",a,{headers:{"Content-Type":"multipart/form-data"}});return s(e.data)};export{n as u};

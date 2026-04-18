@@ -21,7 +21,7 @@ const Login = () => {
         userNameOrEmail: data.userNameOrEmail,
         password: data.password
       });
-      login(result.token.accessToken, toUser(result.user));
+         login(result.token.accessToken, toUser(result.user), result.token.roles);
       navigate('/');
     } catch (err) {
       alert('Login failed!');

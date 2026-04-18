@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import type { Notification } from '../types';
+import { createNotificationHubConnection } from '../services/notificationHub';
 import { deleteNotification, getNotifications, markNotificationRead } from '../services/notifications';
 
 const Notifications = () => {
@@ -26,6 +27,36 @@ const Notifications = () => {
   useEffect(() => {
     loadNotifications();
   }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
+
+    const connection = createNotificationHubConnection(token);
+
+    connection.on('notification:created', (incoming: Notification) => {
+      setItems((current) => {
+        const exists = current.some((item) => item.notificationId === incoming.notificationId);
+        if (exists) {
+          return current;
+        }
+
+        return [incoming, ...current];
+      });
+    });
+
+    connection.start().catch(() => undefined);
+
+    return () => {
+      connection.stop().catch(() => undefined);
+    };
+  }, [user?.userId]);
 
   const handleMarkRead = async (notificationId: string) => {
     try {

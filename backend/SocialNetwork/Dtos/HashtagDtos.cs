@@ -9,3 +9,10 @@ public class HashtagSearchResponse
     public int UsageCount { get; set; }
     public List<PostResponse> Posts { get; set; } = new();
 }
+
+public class HashtagTrendingResponse
+{
+    public string HashtagId { get; set; } = string.Empty;
+    public string Tag { get; set; } = string.Empty;
+    public int UsageCount { get; set; }
+}

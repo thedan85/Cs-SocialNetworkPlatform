@@ -35,6 +35,9 @@ public static class ModelMappingExtensions
             ImageUrl = post.ImageUrl,
             Privacy = string.IsNullOrWhiteSpace(post.Privacy) ? PostPrivacy.Public : post.Privacy,
             LikeCount = post.LikeCount,
+            ShareCount = 0,
+            IsLiked = false,
+            IsShared = false,
             CreatedAt = post.CreatedAt,
             UpdatedAt = post.UpdatedAt
         };
@@ -65,6 +68,17 @@ public static class ModelMappingExtensions
             UserId = like.UserId,
             PostId = like.PostId,
             CreatedAt = like.CreatedAt
+        };
+    }
+
+    public static PostShareResponse ToPostShareResponse(this PostShare share)
+    {
+        return new PostShareResponse
+        {
+            PostShareId = share.PostShareId,
+            PostId = share.PostId,
+            UserId = share.UserId,
+            CreatedAt = share.CreatedAt
         };
     }
 

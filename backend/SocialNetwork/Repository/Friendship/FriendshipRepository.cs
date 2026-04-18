@@ -88,6 +88,15 @@ public class FriendshipRepository : IFriendshipRepository
         return friendships;
     }
 
+    public async Task<IReadOnlyList<string>> GetFriendIdsAsync(string userId, CancellationToken ct = default)
+    {
+        return await _dbContext.Friendships
+            .AsNoTracking()
+            .Where(f => f.Status == "Accepted" && (f.UserId1 == userId || f.UserId2 == userId))
+            .Select(f => f.UserId1 == userId ? f.UserId2 : f.UserId1)
+            .ToListAsync(ct);
+    }
+
     public async Task AddAsync(Friendship friendship, CancellationToken ct = default)
     {
         // Ensure we only persist the friendship row and avoid accidental inserts

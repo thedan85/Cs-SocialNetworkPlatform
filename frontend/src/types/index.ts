@@ -48,6 +48,9 @@ export interface Post {
   imageUrl?: string | null;
   privacy?: 'Public' | 'Friends' | 'Private' | string;
   likeCount: number;
+  isLiked?: boolean;
+  shareCount?: number;
+  isShared?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -57,6 +60,12 @@ export interface HashtagSearchResult {
   tag: string;
   usageCount: number;
   posts: Post[];
+}
+
+export interface HashtagTrendingResult {
+  hashtagId: string;
+  tag: string;
+  usageCount: number;
 }
 
 export interface Comment {
@@ -79,6 +88,13 @@ export interface Like {
   createdAt: string;
 }
 
+export interface PostShare {
+  postShareId: string;
+  postId: string;
+  userId: string;
+  createdAt: string;
+}
+
 export interface PostReport {
   postReportId: string;
   postId: string;
@@ -87,6 +103,27 @@ export interface PostReport {
   description?: string | null;
   status: boolean;
   createdAt: string;
+}
+
+export interface PostReportDetail {
+  postReportId: string;
+  postId: string;
+  reporterUserId: string;
+  reporterUserName?: string | null;
+  reporterFirstName?: string | null;
+  reporterLastName?: string | null;
+  reason?: string | null;
+  description?: string | null;
+  status: boolean;
+  createdAt: string;
+  postAuthorUserId: string;
+  postAuthorUserName?: string | null;
+  postAuthorFirstName?: string | null;
+  postAuthorLastName?: string | null;
+  postContent: string;
+  postImageUrl?: string | null;
+  postPrivacy?: string | null;
+  postCreatedAt: string;
 }
 
 export interface Story {

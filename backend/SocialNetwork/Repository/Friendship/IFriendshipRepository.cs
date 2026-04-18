@@ -24,6 +24,8 @@ public interface IFriendshipRepository
         int pageSize,
         CancellationToken ct = default);
 
+    Task<IReadOnlyList<string>> GetFriendIdsAsync(string userId, CancellationToken ct = default);
+
     Task AddAsync(Friendship friendship, CancellationToken ct = default);
 
     Task<bool> UpdateStatusAsync(

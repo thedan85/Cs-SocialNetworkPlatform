@@ -16,6 +16,7 @@ public class User : IdentityUser
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<Story> Stories { get; set; } = new List<Story>();
     public ICollection<Like> Likes { get; set; } = new List<Like>();
+    public ICollection<PostShare> PostShares { get; set; } = new List<PostShare>();
     public ICollection<Notification> ReceivedNotifications { get; set; } = new List<Notification>();
     public ICollection<Notification> SentNotifications { get; set; } = new List<Notification>();
     public ICollection<Friendship> FriendshipsAsUser1 { get; set; } = new List<Friendship>();

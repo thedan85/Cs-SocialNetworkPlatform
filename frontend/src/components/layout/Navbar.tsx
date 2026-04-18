@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { Menu, X, Home, User, Bell, LogOut, Search, Users, BookOpen, Sun, Moon } from 'lucide-react';
+import { Menu, X, Home, User, Bell, LogOut, Search, Users, BookOpen, Sun, Moon, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { NavItem } from '../../types/nav';
 import { searchUsers } from '../../services/users';
@@ -10,7 +10,7 @@ import SearchResultsPanel from './SearchResultsPanel';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -19,7 +19,7 @@ const Navbar: React.FC = () => {
   const [hashtagResults, setHashtagResults] = useState<HashtagSearchResult[]>([]);
   const [history, setHistory] = useState<string[]>([]);
   const searchRef = useRef<HTMLDivElement | null>(null);
-  const { logout } = useAuth();
+  const { logout, isAdmin } = useAuth();
 
   useEffect(() => {
     const stored = localStorage.getItem('theme');
@@ -159,6 +159,7 @@ const Navbar: React.FC = () => {
     { label: 'Friends', href: '/friends', icon: Users },
     { label: 'Stories', href: '/stories', icon: BookOpen },
     { label: 'Profile', href: '/profile', icon: User },
+    ...(isAdmin ? [{ label: 'Admin', href: '/admin', icon: ShieldCheck }] : [])
   ];
 
   const activeClass = "flex items-center gap-2 text-teal-700 font-semibold bg-white/80 border border-teal-100 px-3 py-2 rounded-full shadow-sm shadow-teal-500/10 dark:text-teal-200 dark:bg-slate-900/70 dark:border-teal-500/30";
@@ -180,12 +181,12 @@ const Navbar: React.FC = () => {
           </Link>
 
           {/* Desktop Search Bar (Hidden on Mobile) */}
-          <div className="hidden md:flex flex-1 max-w-xs mx-4">
+          <div className="hidden md:flex flex-1 justify-center px-6">
             <div
               ref={searchRef}
-              className="relative w-full text-slate-400 focus-within:text-cyan-500"
+              className="relative w-full min-w-[18rem] max-w-lg text-slate-400 focus-within:text-cyan-500"
             >
-              <Search className="absolute left-3 top-2.5 w-4 h-4" />
+              <Search className="absolute left-3 top-3 w-4 h-4" />
               <form onSubmit={handleSearchSubmit} className="w-full">
                 <input 
                   type="text" 
@@ -193,7 +194,7 @@ const Navbar: React.FC = () => {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   onFocus={() => setSearchOpen(true)}
-                  className="w-full rounded-full bg-white/80 border border-white/70 py-2 pl-10 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-cyan-300/70 focus:border-cyan-200 outline-none transition-all dark:bg-slate-900/70 dark:border-slate-700/60 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:ring-cyan-500/40"
+                  className="w-full rounded-full bg-white/80 border border-white/70 py-2.5 pl-10 pr-4 text-base text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-cyan-300/70 focus:border-cyan-200 outline-none transition-all dark:bg-slate-900/70 dark:border-slate-700/60 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:ring-cyan-500/40"
                 />
               </form>
               {searchOpen && (

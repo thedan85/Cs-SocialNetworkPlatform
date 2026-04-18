@@ -473,6 +473,36 @@ namespace SocialNetwork.Migrations
                     b.ToTable("PostReport", (string)null);
                 });
 
+            modelBuilder.Entity("SocialNetwork.Model.PostShare", b =>
+                {
+                    b.Property<string>("PostShareId")
+                        .HasMaxLength(36)
+                        .HasColumnType("varchar(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+                    b.Property<string>("PostId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("varchar(36)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.HasKey("PostShareId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("PostId", "UserId");
+
+                    b.ToTable("PostShare", (string)null);
+                });
+
             modelBuilder.Entity("SocialNetwork.Model.Story", b =>
                 {
                     b.Property<string>("StoryId")
@@ -821,6 +851,25 @@ namespace SocialNetwork.Migrations
                     b.Navigation("ReporterUser");
                 });
 
+            modelBuilder.Entity("SocialNetwork.Model.PostShare", b =>
+                {
+                    b.HasOne("SocialNetwork.Model.Post", "Post")
+                        .WithMany("Shares")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SocialNetwork.Model.User", "User")
+                        .WithMany("PostShares")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("SocialNetwork.Model.Story", b =>
                 {
                     b.HasOne("SocialNetwork.Model.User", "User")
@@ -873,6 +922,8 @@ namespace SocialNetwork.Migrations
                     b.Navigation("Likes");
 
                     b.Navigation("PostHashtags");
+
+                    b.Navigation("Shares");
                 });
 
             modelBuilder.Entity("SocialNetwork.Model.Story", b =>
@@ -891,6 +942,8 @@ namespace SocialNetwork.Migrations
                     b.Navigation("Likes");
 
                     b.Navigation("PostReports");
+
+                    b.Navigation("PostShares");
 
                     b.Navigation("Posts");
 

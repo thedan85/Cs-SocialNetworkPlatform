@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.SignalR;
 using SocialNetwork.Dtos;
 using SocialNetwork.Extensions;
 using SocialNetwork.Helpers;
+using SocialNetwork.Hubs;
 using SocialNetwork.Model;
 using SocialNetwork.Repository;
 
@@ -12,9 +14,12 @@ public class PostsService : IPostsService
     private readonly IPostRepository _postRepository;
     private readonly ICommentRepository _commentRepository;
     private readonly ILikeRepository _likeRepository;
+    private readonly IPostShareRepository _postShareRepository;
     private readonly IUserRepository _userRepository;
     private readonly IHashtagRepository _hashtagRepository;
     private readonly IFriendshipRepository _friendshipRepository;
+    private readonly INotificationRepository _notificationRepository;
+    private readonly IHubContext<NotificationsHub> _notificationsHub;
     private readonly IPostReportRepository _postReportRepository;
 
     public PostsService(
@@ -22,18 +27,24 @@ public class PostsService : IPostsService
         IPostRepository postRepository,
         ICommentRepository commentRepository,
         ILikeRepository likeRepository,
+        IPostShareRepository postShareRepository,
         IUserRepository userRepository,
         IHashtagRepository hashtagRepository,
         IFriendshipRepository friendshipRepository,
+        INotificationRepository notificationRepository,
+        IHubContext<NotificationsHub> notificationsHub,
         IPostReportRepository postReportRepository)
     {
         _unitOfWork = unitOfWork;
         _postRepository = postRepository;
         _commentRepository = commentRepository;
         _likeRepository = likeRepository;
+        _postShareRepository = postShareRepository;
         _userRepository = userRepository;
         _hashtagRepository = hashtagRepository;
         _friendshipRepository = friendshipRepository;
+        _notificationRepository = notificationRepository;
+        _notificationsHub = notificationsHub;
         _postReportRepository = postReportRepository;
     }
 
@@ -53,8 +64,22 @@ public class PostsService : IPostsService
 
         var posts = await _postRepository.GetVisiblePagedAsync(actorUserId, isAdmin, pageNumber, pageSize, ct);
 
+        var postIds = posts.Select(post => post.PostId).ToList();
+        var likedPostIds = await _likeRepository.GetLikedPostIdsAsync(actorUserId, postIds, ct);
+        var sharedPostIds = await _postShareRepository.GetSharedPostIdsAsync(actorUserId, postIds, ct);
+        var shareCounts = await _postShareRepository.GetShareCountsAsync(postIds, ct);
+        var likedPostIdSet = new HashSet<string>(likedPostIds, StringComparer.OrdinalIgnoreCase);
+        var sharedPostIdSet = new HashSet<string>(sharedPostIds, StringComparer.OrdinalIgnoreCase);
+
         var responses = posts
-            .Select(post => post.ToPostResponse())
+            .Select(post =>
+            {
+                var response = post.ToPostResponse();
+                response.IsLiked = likedPostIdSet.Contains(post.PostId);
+                response.IsShared = sharedPostIdSet.Contains(post.PostId);
+                response.ShareCount = shareCounts.TryGetValue(post.PostId, out var count) ? count : 0;
+                return response;
+            })
             .ToList();
 
         return ServiceResult<IReadOnlyList<PostResponse>>.Ok(responses);
@@ -79,7 +104,15 @@ public class PostsService : IPostsService
                 postResult.Errors);
         }
 
-        return ServiceResult<PostResponse>.Ok(postResult.Data.ToPostResponse());
+        var response = postResult.Data.ToPostResponse();
+        var existingLike = await _likeRepository.GetByPostAndUserAsync(postId, actorUserId, ct);
+        var existingShare = await _postShareRepository.GetByPostAndUserAsync(postId, actorUserId, ct);
+        var shareCount = await _postShareRepository.CountByPostIdAsync(postId, ct);
+        response.IsLiked = existingLike is not null;
+        response.IsShared = existingShare is not null;
+        response.ShareCount = shareCount;
+
+        return ServiceResult<PostResponse>.Ok(response);
     }
 
     public async Task<ServiceResult<PostResponse>> CreatePostAsync(
@@ -149,6 +182,9 @@ public class PostsService : IPostsService
             ImageUrl = post.ImageUrl,
             Privacy = post.Privacy,
             LikeCount = post.LikeCount,
+            ShareCount = 0,
+            IsLiked = false,
+            IsShared = false,
             CreatedAt = post.CreatedAt,
             UpdatedAt = post.UpdatedAt
         };
@@ -197,7 +233,12 @@ public class PostsService : IPostsService
         existingPost.UpdatedAt = now;
 
         await _postRepository.UpdateAsync(existingPost, ct);
-        return ServiceResult<PostResponse>.Ok(existingPost.ToPostResponse());
+        var response = existingPost.ToPostResponse();
+        response.IsLiked = await _likeRepository.GetByPostAndUserAsync(postId, actorUserId, ct) is not null;
+        response.IsShared = await _postShareRepository.GetByPostAndUserAsync(postId, actorUserId, ct) is not null;
+        response.ShareCount = await _postShareRepository.CountByPostIdAsync(postId, ct);
+
+        return ServiceResult<PostResponse>.Ok(response);
     }
 
     public async Task<ServiceResult<string>> DeletePostAsync(
@@ -418,6 +459,193 @@ public class PostsService : IPostsService
         }
     }
 
+    public async Task<ServiceResult<SharePostResult>> SharePostAsync(
+        string actorUserId,
+        string postId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<SharePostResult>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
+        var sharer = await _userRepository.GetByIdAsync(actorUserId, ct);
+        if (sharer is null)
+        {
+            return ServiceResult<SharePostResult>.Fail(ServiceErrorType.NotFound, "User not found.");
+        }
+
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(ct);
+
+        try
+        {
+            var post = await _postRepository.GetByIdAsync(postId, ct);
+
+            if (post is null)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<SharePostResult>.Fail(ServiceErrorType.NotFound, "Post not found.");
+            }
+
+            var canView = await IsPostVisibleAsync(post, actorUserId, false, ct);
+            if (!canView)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<SharePostResult>.Fail(
+                    ServiceErrorType.Unauthorized,
+                    "You are not allowed to share this post.");
+            }
+
+            var existingShare = await _postShareRepository.GetByPostAndUserAsync(postId, actorUserId, ct);
+            if (existingShare is not null)
+            {
+                await transaction.RollbackAsync(ct);
+
+                return ServiceResult<SharePostResult>.Ok(new SharePostResult
+                {
+                    Share = existingShare.ToPostShareResponse(),
+                    IsCreated = false
+                });
+            }
+
+            var share = new PostShare
+            {
+                PostId = postId,
+                UserId = actorUserId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _postShareRepository.AddAsync(share, ct);
+            await NotifyFriendsOfShareAsync(sharer, post, ct);
+
+            await transaction.CommitAsync(ct);
+
+            return ServiceResult<SharePostResult>.Ok(new SharePostResult
+            {
+                Share = share.ToPostShareResponse(),
+                IsCreated = true
+            });
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
+    }
+
+    public async Task<ServiceResult<string>> UnsharePostAsync(
+        string actorUserId,
+        string postId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
+        var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
+        if (!userExists)
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "User not found.");
+        }
+
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(ct);
+
+        try
+        {
+            var post = await _postRepository.GetByIdAsync(postId, ct);
+            if (post is null)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Post not found.");
+            }
+
+            var canView = await IsPostVisibleAsync(post, actorUserId, false, ct);
+            if (!canView)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<string>.Fail(
+                    ServiceErrorType.Unauthorized,
+                    "You are not allowed to unshare this post.");
+            }
+
+            var deleted = await _postShareRepository.DeleteByPostAndUserAsync(postId, actorUserId, ct);
+            if (!deleted)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<string>.Ok("Share removed.");
+            }
+
+            await transaction.CommitAsync(ct);
+            return ServiceResult<string>.Ok("Share removed.");
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
+    }
+
+    public async Task<ServiceResult<string>> UnlikePostAsync(
+        string actorUserId,
+        string postId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
+        var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
+        if (!userExists)
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "User not found.");
+        }
+
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(ct);
+
+        try
+        {
+            var post = await _postRepository.GetByIdAsync(postId, ct);
+            if (post is null)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Post not found.");
+            }
+
+            var canView = await IsPostVisibleAsync(post, actorUserId, false, ct);
+            if (!canView)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<string>.Fail(
+                    ServiceErrorType.Unauthorized,
+                    "You are not allowed to unlike this post.");
+            }
+
+            var deleted = await _likeRepository.DeleteByPostAndUserAsync(postId, actorUserId, ct);
+            if (!deleted)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<string>.Ok("Like removed.");
+            }
+
+            var updated = await _postRepository.IncrementLikeCountAsync(postId, -1, ct);
+            if (!updated)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Post not found.");
+            }
+
+            await transaction.CommitAsync(ct);
+            return ServiceResult<string>.Ok("Like removed.");
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
+    }
+
     public async Task<ServiceResult<PostReportResponse>> ReportPostAsync(
         string actorUserId,
         string postId,
@@ -474,6 +702,139 @@ public class PostsService : IPostsService
         await _postReportRepository.AddAsync(postReport, ct);
 
         return ServiceResult<PostReportResponse>.Ok(postReport.ToPostReportResponse());
+    }
+
+    public async Task<ServiceResult<IReadOnlyList<PostReportDetailResponse>>> GetPendingPostReportsAsync(
+        string actorUserId,
+        bool isAdmin,
+        int pageNumber = 1,
+        int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<IReadOnlyList<PostReportDetailResponse>>.Fail(
+                ServiceErrorType.Unauthorized,
+                "User context is missing.");
+        }
+
+        if (!isAdmin)
+        {
+            return ServiceResult<IReadOnlyList<PostReportDetailResponse>>.Fail(
+                ServiceErrorType.Unauthorized,
+                "You are not allowed to view post reports.");
+        }
+
+        var reports = await _postReportRepository.GetPendingWithDetailsAsync(pageNumber, pageSize, ct);
+
+        var responses = reports.Select(report =>
+        {
+            var post = report.Post;
+            var reporter = report.ReporterUser;
+
+            return new PostReportDetailResponse
+            {
+                PostReportId = report.PostReportId,
+                PostId = report.PostId,
+                ReporterUserId = report.ReporterUserId,
+                ReporterUserName = reporter?.UserName,
+                ReporterFirstName = reporter?.FirstName,
+                ReporterLastName = reporter?.LastName,
+                Reason = report.Reason,
+                Description = report.Description,
+                Status = report.Status,
+                CreatedAt = report.CreatedAt,
+                PostAuthorUserId = post?.UserId ?? string.Empty,
+                PostAuthorUserName = post?.User?.UserName,
+                PostAuthorFirstName = post?.User?.FirstName,
+                PostAuthorLastName = post?.User?.LastName,
+                PostContent = post?.Content ?? string.Empty,
+                PostImageUrl = post?.ImageUrl,
+                PostPrivacy = post?.Privacy,
+                PostCreatedAt = post?.CreatedAt ?? report.CreatedAt
+            };
+        }).ToList();
+
+        return ServiceResult<IReadOnlyList<PostReportDetailResponse>>.Ok(responses);
+    }
+
+    public async Task<ServiceResult<string>> ReviewPostReportAsync(
+        string actorUserId,
+        string postReportId,
+        bool reviewed,
+        bool isAdmin,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
+        if (!isAdmin)
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "You are not allowed to review reports.");
+        }
+
+        var updated = await _postReportRepository.SetReviewStatusAsync(postReportId, reviewed, ct);
+        if (!updated)
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Post report not found.");
+        }
+
+        return ServiceResult<string>.Ok("Post report updated.");
+    }
+
+    private async Task NotifyFriendsOfShareAsync(User sharer, Post post, CancellationToken ct)
+    {
+        var friendIds = await _friendshipRepository.GetFriendIdsAsync(sharer.Id, ct);
+        if (friendIds.Count == 0)
+        {
+            return;
+        }
+
+        var sharerName = BuildDisplayName(sharer);
+        var postAuthorName = BuildDisplayName(post.User);
+        var content = NotificationContentHelper.BuildPostSharedContent(sharerName, postAuthorName);
+
+        foreach (var friendId in friendIds.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var notification = new Notification
+            {
+                RecipientUserId = friendId,
+                SenderUserId = sharer.Id,
+                Type = "PostShared",
+                Content = content,
+                CreatedAt = DateTime.UtcNow,
+                IsRead = false
+            };
+
+            await _notificationRepository.AddAsync(notification, ct);
+            var notificationResponse = notification.ToNotificationResponse();
+            await _notificationsHub.Clients
+                .Group(NotificationsHub.GroupName(friendId))
+                .SendAsync("notification:created", notificationResponse, ct);
+        }
+    }
+
+    private static string BuildDisplayName(User? user)
+    {
+        if (user is null)
+        {
+            return "Someone";
+        }
+
+        var fullName = $"{user.FirstName} {user.LastName}".Trim();
+        if (!string.IsNullOrWhiteSpace(fullName))
+        {
+            return fullName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(user.UserName))
+        {
+            return user.UserName;
+        }
+
+        return string.IsNullOrWhiteSpace(user.Id) ? "Someone" : $"User {user.Id[..Math.Min(8, user.Id.Length)]}";
     }
 
     private async Task<ServiceResult<Post>> GetVisiblePostAsync(

@@ -4,7 +4,8 @@ import type {
   Comment,
   Like,
   Post,
-  PostReport
+  PostReport,
+  PostShare
 } from '../types';
 
 export interface PostCreateRequest {
@@ -76,6 +77,21 @@ export const deleteComment = async (postId: string, commentId: string) => {
 
 export const likePost = async (postId: string) => {
   const response = await api.post<ApiResponse<Like>>(`/posts/${postId}/likes`, {});
+  return unwrapApiResponse(response.data);
+};
+
+export const sharePost = async (postId: string) => {
+  const response = await api.post<ApiResponse<PostShare>>(`/posts/${postId}/shares`, {});
+  return unwrapApiResponse(response.data);
+};
+
+export const unsharePost = async (postId: string) => {
+  const response = await api.delete<ApiResponse<{ message: string }>>(`/posts/${postId}/shares`);
+  return unwrapApiResponse(response.data);
+};
+
+export const unlikePost = async (postId: string) => {
+  const response = await api.delete<ApiResponse<{ message: string }>>(`/posts/${postId}/likes`);
   return unwrapApiResponse(response.data);
 };
 

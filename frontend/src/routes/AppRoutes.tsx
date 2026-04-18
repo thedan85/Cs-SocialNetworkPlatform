@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
+import AdminRoute from './AdminRoute';
 import MainLayout from '../components/layout/MainLayout';
 
 // Lazy loading pages to optimize performance (Requirement F4)
@@ -12,6 +13,7 @@ const UserProfile = lazy(() => import('../pages/UserProfile'));
 const Notifications = lazy(() => import('../pages/Notifications'));
 const Friends = lazy(() => import('../pages/Friends'));
 const Stories = lazy(() => import('../pages/Stories'));
+const AdminDashboard = lazy(() => import('../pages/AdminDashboard'));
 
 const AppRoutes = () => {
   return (
@@ -31,6 +33,9 @@ const AppRoutes = () => {
             <Route path="/stories" element={<Stories />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/users/:userId" element={<UserProfile />} />
+            <Route element={<AdminRoute />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+            </Route>
           </Route>
         </Route>
 

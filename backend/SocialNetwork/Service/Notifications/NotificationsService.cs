@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.SignalR;
 using SocialNetwork.Dtos;
 using SocialNetwork.Extensions;
+using SocialNetwork.Hubs;
 using SocialNetwork.Model;
 using SocialNetwork.Repository;
 
@@ -9,13 +11,16 @@ public class NotificationsService : INotificationsService
 {
     private readonly INotificationRepository _notificationRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IHubContext<NotificationsHub> _notificationsHub;
 
     public NotificationsService(
         INotificationRepository notificationRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        IHubContext<NotificationsHub> notificationsHub)
     {
         _notificationRepository = notificationRepository;
         _userRepository = userRepository;
+        _notificationsHub = notificationsHub;
     }
 
     public async Task<ServiceResult<IReadOnlyList<NotificationResponse>>> GetNotificationsAsync(
@@ -103,7 +108,12 @@ public class NotificationsService : INotificationsService
 
         await _notificationRepository.AddAsync(notification, ct);
 
-        return ServiceResult<NotificationResponse>.Ok(notification.ToNotificationResponse());
+        var response = notification.ToNotificationResponse();
+        await _notificationsHub.Clients
+            .Group(NotificationsHub.GroupName(request.RecipientUserId))
+            .SendAsync("notification:created", response, ct);
+
+        return ServiceResult<NotificationResponse>.Ok(response);
     }
 
     public async Task<ServiceResult<NotificationResponse>> MarkAsReadAsync(

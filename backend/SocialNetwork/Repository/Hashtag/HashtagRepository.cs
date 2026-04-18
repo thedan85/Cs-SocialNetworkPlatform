@@ -96,6 +96,19 @@ public class HashtagRepository : IHashtagRepository
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<Hashtag>> GetTrendingAsync(
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        return await _dbContext.Hashtags
+            .AsNoTracking()
+            .OrderByDescending(hashtag => hashtag.UsageCount)
+            .ThenByDescending(hashtag => hashtag.CreatedAt)
+            .ApplyPaging(pageNumber, pageSize, defaultPageSize: 20)
+            .ToListAsync(ct);
+    }
+
     public async Task AddPostHashtagsAsync(string postId, IEnumerable<string> hashtagIds, CancellationToken ct = default)
     {
         var ids = hashtagIds

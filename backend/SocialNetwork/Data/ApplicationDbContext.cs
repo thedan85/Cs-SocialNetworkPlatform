@@ -21,6 +21,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Story> Stories { get; set; }
     public DbSet<Like> Likes { get; set; }
+    public DbSet<PostShare> PostShares { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<Friendship> Friendships { get; set; }
     public DbSet<UserFriendship> UserFriendships { get; set; }
@@ -303,6 +304,40 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .HasForeignKey(e => e.StoryId)
                 .OnDelete(DeleteBehavior.Cascade);
         }); 
+
+        modelBuilder.Entity<PostShare>(entity =>
+        {
+            entity.ToTable("PostShare");
+
+            entity.HasKey(e => e.PostShareId);
+
+            entity.HasIndex(e => new { e.PostId, e.UserId });
+
+            entity.Property(e => e.PostShareId)
+                .HasMaxLength(36)
+                .IsRequired();
+
+            entity.Property(e => e.PostId)
+                .HasMaxLength(36)
+                .IsRequired();
+
+            entity.Property(e => e.UserId)
+                .HasMaxLength(128)
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+            entity.HasOne(e => e.Post)
+                .WithMany(p => p.Shares)
+                .HasForeignKey(e => e.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.PostShares)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         // Configure Friendship entity
         modelBuilder.Entity<Friendship>(entity =>

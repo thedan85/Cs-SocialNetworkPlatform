@@ -82,7 +82,6 @@ const Friends = () => {
     try {
       const request = await createFriendRequest({ addresseeUserId });
       setPending((current) => [request, ...current]);
-      setSearchResults((current) => current.filter(result => result.userId !== addresseeUserId));
     } catch (err) {
       alert('Unable to send friend request.');
     } finally {
@@ -134,6 +133,32 @@ const Friends = () => {
     };
   };
 
+  const incomingPendingRequests = user
+    ? pending.filter((friendship) => friendship.userId2 === user.userId)
+    : [];
+
+  const getSearchRelationship = (targetUserId: string) => {
+    const isFriend = friends.some((friendship) => resolveFriendInfo(friendship).userId === targetUserId);
+    if (isFriend) {
+      return 'friend' as const;
+    }
+
+    const isPending = pending.some((friendship) => resolveFriendInfo(friendship).userId === targetUserId);
+    if (isPending) {
+      return 'pending' as const;
+    }
+
+    return 'none' as const;
+  };
+
+  const getProfilePath = (targetUserId: string) => {
+    if (user?.userId === targetUserId) {
+      return '/profile';
+    }
+
+    return `/users/${targetUserId}`;
+  };
+
   if (!user) {
     return <div className="text-center text-slate-600 dark:text-slate-400">Sign in to manage friends.</div>;
   }
@@ -173,25 +198,43 @@ const Friends = () => {
         {!searching && searchResults.length > 0 && (
           <div className="mt-4 space-y-3">
             {searchResults.map((result) => (
-              <div key={result.userId} className="flex items-center justify-between rounded-xl border border-white/60 bg-white/70 px-3 py-2 dark:border-slate-800/60 dark:bg-slate-900/60">
-                <div>
+              (() => {
+                const relationship = getSearchRelationship(result.userId);
+                const relationshipLabel = relationship === 'friend' ? 'Friend' : relationship === 'pending' ? 'Pending' : null;
+
+                return (
+                  <div key={result.userId} className="flex items-center justify-between rounded-xl border border-white/60 bg-white/70 px-3 py-2 dark:border-slate-800/60 dark:bg-slate-900/60">
+                    <div>
                   <Link
-                    to={`/users/${result.userId}`}
+                    to={getProfilePath(result.userId)}
                     className="text-sm font-semibold text-slate-900 hover:text-cyan-700 dark:text-slate-100 dark:hover:text-cyan-200"
                   >
                     {buildDisplayName(result.firstName, result.lastName, result.userName, result.userId)}
                   </Link>
                   <p className="text-xs text-slate-400 dark:text-slate-500">@{result.userName}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleSendRequest(result.userId)}
-                  disabled={sending}
-                  className="rounded-lg bg-emerald-500 px-3 py-1 text-xs font-semibold text-white shadow-md shadow-emerald-500/20 hover:bg-emerald-600 disabled:bg-emerald-300"
-                >
-                  {sending ? 'Sending...' : 'Add'}
-                </button>
-              </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {relationshipLabel && (
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          relationship === 'friend'
+                            ? 'bg-cyan-100/70 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300'
+                            : 'bg-amber-100/70 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200'
+                        }`}>
+                          {relationshipLabel}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleSendRequest(result.userId)}
+                        disabled={sending || relationship !== 'none'}
+                        className="rounded-lg bg-emerald-500 px-3 py-1 text-xs font-semibold text-white shadow-md shadow-emerald-500/20 hover:bg-emerald-600 disabled:bg-slate-300 disabled:text-slate-600 disabled:shadow-none"
+                      >
+                        {sending ? 'Sending...' : relationship === 'friend' ? 'Friends' : relationship === 'pending' ? 'Pending' : 'Add'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()
             ))}
           </div>
         )}
@@ -211,17 +254,17 @@ const Friends = () => {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-xl p-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-slate-900/60 dark:border-slate-800/60">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Pending Requests</h2>
-          {pending.length === 0 ? (
+          {incomingPendingRequests.length === 0 ? (
             <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">No pending requests.</p>
           ) : (
             <div className="mt-3 space-y-3">
-              {pending.map((item) => {
+              {incomingPendingRequests.map((item) => {
                 const friendInfo = resolveFriendInfo(item);
                 return (
                   <div key={item.friendshipId} className="flex items-center justify-between gap-3">
                     <div>
                       <Link
-                        to={`/users/${friendInfo.userId}`}
+                        to={getProfilePath(friendInfo.userId)}
                         className="text-sm font-medium text-slate-900 hover:text-cyan-700 dark:text-slate-100 dark:hover:text-cyan-200"
                       >
                         {friendInfo.label}
@@ -261,7 +304,7 @@ const Friends = () => {
                   <div key={item.friendshipId} className="flex items-center justify-between gap-3">
                     <div>
                       <Link
-                        to={`/users/${friendInfo.userId}`}
+                        to={getProfilePath(friendInfo.userId)}
                         className="text-sm font-medium text-slate-900 hover:text-cyan-700 dark:text-slate-100 dark:hover:text-cyan-200"
                       >
                         {friendInfo.label}

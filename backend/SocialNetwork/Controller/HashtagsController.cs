@@ -35,4 +35,19 @@ public class HashtagsController : ApiControllerBase
 
         return FromServiceResult(result);
     }
+
+    /// <summary>Get trending hashtags.</summary>
+    [HttpGet("trending")]
+    [ProducesResponseType(typeof(ApiResponse<List<HashtagTrendingResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetTrendingHashtags(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var result = await _hashtagsService.GetTrendingHashtagsAsync(
+            pageNumber,
+            pageSize,
+            HttpContext.RequestAborted);
+
+        return FromServiceResult(result);
+    }
 }

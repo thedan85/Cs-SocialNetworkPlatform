@@ -12,17 +12,23 @@ public class UsersService : IUsersService
     private readonly IUserRepository _userRepository;
     private readonly IPostRepository _postRepository;
     private readonly IFriendshipRepository _friendshipRepository;
+    private readonly ILikeRepository _likeRepository;
+    private readonly IPostShareRepository _postShareRepository;
 
     public UsersService(
         UserManager<User> userManager,
         IUserRepository userRepository,
         IPostRepository postRepository,
-        IFriendshipRepository friendshipRepository)
+        IFriendshipRepository friendshipRepository,
+        ILikeRepository likeRepository,
+        IPostShareRepository postShareRepository)
     {
         _userManager = userManager;
         _userRepository = userRepository;
         _postRepository = postRepository;
         _friendshipRepository = friendshipRepository;
+        _likeRepository = likeRepository;
+        _postShareRepository = postShareRepository;
     }
 
     public async Task<ServiceResult<IReadOnlyList<UserResponse>>> GetUsersAsync(CancellationToken ct = default)
@@ -148,8 +154,22 @@ public class UsersService : IUsersService
             posts = await _postRepository.GetByUserIdWithPrivacyAsync(userId, allowedPrivacy, ct);
         }
 
+        var postIds = posts.Select(post => post.PostId).ToList();
+        var likedPostIds = await _likeRepository.GetLikedPostIdsAsync(actorUserId, postIds, ct);
+        var sharedPostIds = await _postShareRepository.GetSharedPostIdsAsync(actorUserId, postIds, ct);
+        var shareCounts = await _postShareRepository.GetShareCountsAsync(postIds, ct);
+        var likedPostIdSet = new HashSet<string>(likedPostIds, StringComparer.OrdinalIgnoreCase);
+        var sharedPostIdSet = new HashSet<string>(sharedPostIds, StringComparer.OrdinalIgnoreCase);
+
         var responses = posts
-            .Select(post => post.ToPostResponse())
+            .Select(post =>
+            {
+                var response = post.ToPostResponse();
+                response.IsLiked = likedPostIdSet.Contains(post.PostId);
+                response.IsShared = sharedPostIdSet.Contains(post.PostId);
+                response.ShareCount = shareCounts.TryGetValue(post.PostId, out var count) ? count : 0;
+                return response;
+            })
             .ToList();
 
         return ServiceResult<IReadOnlyList<PostResponse>>.Ok(responses);

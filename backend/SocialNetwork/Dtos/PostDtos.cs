@@ -45,6 +45,9 @@ public class PostResponse
     public string? ImageUrl { get; set; }
     public string Privacy { get; set; } = string.Empty;
     public int LikeCount { get; set; }
+    public int ShareCount { get; set; }
+    public bool IsLiked { get; set; }
+    public bool IsShared { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

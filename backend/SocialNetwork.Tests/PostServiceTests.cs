@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore.Storage;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
+using SocialNetwork.Hubs;
 
 namespace SocialNetwork.Tests.Services;
 
@@ -17,9 +19,12 @@ public class PostsServiceTests
     private readonly Mock<IPostRepository> _postRepoMock;
     private readonly Mock<ICommentRepository> _commentRepoMock;
     private readonly Mock<ILikeRepository> _likeRepoMock;
+    private readonly Mock<IPostShareRepository> _postShareRepoMock;
     private readonly Mock<IUserRepository> _userRepoMock;
     private readonly Mock<IHashtagRepository> _hashtagRepoMock;
     private readonly Mock<IFriendshipRepository> _friendshipRepoMock;
+    private readonly Mock<INotificationRepository> _notificationRepoMock;
+    private readonly Mock<IHubContext<NotificationsHub>> _notificationHubMock;
     private readonly Mock<IPostReportRepository> _reportRepoMock;
     private readonly PostsService _postsService;
 
@@ -29,19 +34,58 @@ public class PostsServiceTests
         _postRepoMock = new Mock<IPostRepository>();
         _commentRepoMock = new Mock<ICommentRepository>();
         _likeRepoMock = new Mock<ILikeRepository>();
+        _postShareRepoMock = new Mock<IPostShareRepository>();
         _userRepoMock = new Mock<IUserRepository>();
         _hashtagRepoMock = new Mock<IHashtagRepository>();
         _friendshipRepoMock = new Mock<IFriendshipRepository>();
+        _notificationRepoMock = new Mock<INotificationRepository>();
+        _notificationHubMock = new Mock<IHubContext<NotificationsHub>>();
         _reportRepoMock = new Mock<IPostReportRepository>();
+
+        _likeRepoMock
+            .Setup(r => r.GetLikedPostIdsAsync(
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
+        _likeRepoMock
+            .Setup(r => r.GetByPostAndUserAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Like?)null);
+        _postShareRepoMock
+            .Setup(r => r.GetSharedPostIdsAsync(
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
+        _postShareRepoMock
+            .Setup(r => r.GetShareCountsAsync(
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int>());
+        _postShareRepoMock
+            .Setup(r => r.GetByPostAndUserAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PostShare?)null);
+        _postShareRepoMock
+            .Setup(r => r.CountByPostIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
 
         _postsService = new PostsService(
             _unitOfWorkMock.Object,
             _postRepoMock.Object,
             _commentRepoMock.Object,
             _likeRepoMock.Object,
+            _postShareRepoMock.Object,
             _userRepoMock.Object,
             _hashtagRepoMock.Object,
                 _friendshipRepoMock.Object,
+            _notificationRepoMock.Object,
+            _notificationHubMock.Object,
             _reportRepoMock.Object);
     }
 

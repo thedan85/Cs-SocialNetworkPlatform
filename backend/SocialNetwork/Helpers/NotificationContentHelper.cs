@@ -11,4 +11,14 @@ public static class NotificationContentHelper
     {
         return $"{accepterUserName} accepted your friend request.";
     }
+
+    public static string BuildPostSharedContent(string sharerUserName, string postAuthorName)
+    {
+        if (string.IsNullOrWhiteSpace(postAuthorName))
+        {
+            return $"{sharerUserName} shared a post.";
+        }
+
+        return $"{sharerUserName} shared {postAuthorName}'s post.";
+    }
 }

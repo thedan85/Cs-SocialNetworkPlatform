@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import type { HashtagSearchResult, User } from '../../types';
 
 interface SearchResultsPanelProps {
@@ -24,6 +25,7 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
   onClearHistory
 }) => {
   const trimmed = query.trim();
+  const { user: currentUser } = useAuth();
 
   if (!trimmed) {
     return (
@@ -77,10 +79,13 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Users</p>
           {users.map((user) => {
             const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+            const profilePath = currentUser?.userId === user.userId
+              ? '/profile'
+              : `/users/${user.userId}`;
             return (
               <Link
                 key={user.userId}
-                to={`/users/${user.userId}`}
+                to={profilePath}
                 className="rounded-lg border border-white/60 bg-white/70 px-3 py-2 dark:border-slate-800/60 dark:bg-slate-900/60"
               >
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -113,13 +118,16 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
                 <div className="mt-2 space-y-2">
                   {tag.posts.map((post) => {
                     const name = [post.firstName, post.lastName].filter(Boolean).join(' ').trim() || post.userName;
+                    const postProfilePath = currentUser?.userId === post.userId
+                      ? '/profile'
+                      : `/users/${post.userId}`;
                     const snippet = post.content.length > 140
                       ? `${post.content.slice(0, 140)}...`
                       : post.content;
                     return (
                       <div key={post.postId} className="rounded-lg bg-white/80 px-3 py-2 text-xs text-slate-600 dark:bg-slate-950/60 dark:text-slate-300">
                         <Link
-                          to={`/users/${post.userId}`}
+                          to={postProfilePath}
                           className="font-semibold text-slate-700 hover:text-cyan-700 dark:text-slate-200 dark:hover:text-cyan-200"
                         >
                           {name || 'Unknown user'}

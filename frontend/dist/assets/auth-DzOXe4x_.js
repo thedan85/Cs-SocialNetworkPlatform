@@ -1,0 +1,1 @@
+import{a as e,u as t}from"./index-Bs0LXsTo.js";const r=async s=>{const a=await e.post("/auth/register",s);return t(a.data)},o=async s=>{const a=await e.post("/auth/login",s);return t(a.data)},i=s=>({userId:s.userId,userName:s.userName,email:s.email,firstName:s.firstName??null,lastName:s.lastName??null,bio:s.bio??null});export{o as l,r,i as t};

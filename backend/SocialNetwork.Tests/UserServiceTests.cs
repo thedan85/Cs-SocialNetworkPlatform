@@ -13,6 +13,8 @@ public class UsersServiceTests
     private readonly Mock<IUserRepository> _userRepoMock;
     private readonly Mock<IPostRepository> _postRepoMock;
     private readonly Mock<IFriendshipRepository> _friendshipRepoMock;
+    private readonly Mock<ILikeRepository> _likeRepoMock;
+    private readonly Mock<IPostShareRepository> _postShareRepoMock;
     private readonly Mock<UserManager<User>> _userManagerMock;
     private readonly UsersService _usersService;
 
@@ -21,6 +23,26 @@ public class UsersServiceTests
         _userRepoMock = new Mock<IUserRepository>();
         _postRepoMock = new Mock<IPostRepository>();
         _friendshipRepoMock = new Mock<IFriendshipRepository>();
+        _likeRepoMock = new Mock<ILikeRepository>();
+        _postShareRepoMock = new Mock<IPostShareRepository>();
+
+        _likeRepoMock
+            .Setup(r => r.GetLikedPostIdsAsync(
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
+        _postShareRepoMock
+            .Setup(r => r.GetSharedPostIdsAsync(
+                It.IsAny<string>(),
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
+        _postShareRepoMock
+            .Setup(r => r.GetShareCountsAsync(
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int>());
         
         // Mock UserManager cần một vài tham số giả lập để khởi tạo
         _userManagerMock = new Mock<UserManager<User>>(
@@ -31,7 +53,9 @@ public class UsersServiceTests
             _userManagerMock.Object,
             _userRepoMock.Object,
             _postRepoMock.Object,
-            _friendshipRepoMock.Object);
+            _friendshipRepoMock.Object,
+            _likeRepoMock.Object,
+            _postShareRepoMock.Object);
     }
 
     #region GetUserByIdAsync Tests
