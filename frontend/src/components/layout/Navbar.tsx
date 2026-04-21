@@ -7,9 +7,11 @@ import { searchUsers } from '../../services/users';
 import { searchHashtags } from '../../services/hashtags';
 import type { HashtagSearchResult, User as UserType } from '../../types';
 import SearchResultsPanel from './SearchResultsPanel';
+import { NotificationDropdown } from './Notification';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
