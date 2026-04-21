@@ -1,0 +1,180 @@
+using Microsoft.AspNetCore.SignalR;
+using SocialNetwork.Dtos;
+using SocialNetwork.Extensions;
+using SocialNetwork.Hubs;
+using SocialNetwork.Model;
+using SocialNetwork.Repository;
+
+namespace SocialNetwork.Service;
+
+public class NotificationsService : INotificationsService
+{
+    private readonly INotificationRepository _notificationRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly IHubContext<NotificationsHub> _notificationsHub;
+
+    public NotificationsService(
+        INotificationRepository notificationRepository,
+        IUserRepository userRepository,
+        IHubContext<NotificationsHub> notificationsHub)
+    {
+        _notificationRepository = notificationRepository;
+        _userRepository = userRepository;
+        _notificationsHub = notificationsHub;
+    }
+
+    public async Task<ServiceResult<IReadOnlyList<NotificationResponse>>> GetNotificationsAsync(
+        string userId,
+        int pageNumber = 1,
+        int pageSize = 50,
+        CancellationToken ct = default)
+    {
+        var userExists = await _userRepository.ExistsByIdAsync(userId, ct);
+        if (!userExists)
+        {
+            return ServiceResult<IReadOnlyList<NotificationResponse>>.Fail(ServiceErrorType.NotFound, "User not found.");
+        }
+
+        var notifications = await _notificationRepository.GetByRecipientUserIdAsync(
+            userId,
+            isRead: null,
+            pageNumber: pageNumber,
+            pageSize: pageSize,
+            ct: ct);
+
+        var responses = notifications
+            .Select(notification => notification.ToNotificationResponse())
+            .ToList();
+
+        return ServiceResult<IReadOnlyList<NotificationResponse>>.Ok(responses);
+    }
+
+    public async Task<ServiceResult<IReadOnlyList<NotificationResponse>>> GetUnreadNotificationsAsync(
+        string userId,
+        int pageNumber = 1,
+        int pageSize = 50,
+        CancellationToken ct = default)
+    {
+        var userExists = await _userRepository.ExistsByIdAsync(userId, ct);
+        if (!userExists)
+        {
+            return ServiceResult<IReadOnlyList<NotificationResponse>>.Fail(ServiceErrorType.NotFound, "User not found.");
+        }
+
+        var notifications = await _notificationRepository.GetByRecipientUserIdAsync(
+            userId,
+            isRead: false,
+            pageNumber: pageNumber,
+            pageSize: pageSize,
+            ct: ct);
+
+        var responses = notifications
+            .Select(notification => notification.ToNotificationResponse())
+            .ToList();
+
+        return ServiceResult<IReadOnlyList<NotificationResponse>>.Ok(responses);
+    }
+
+    public async Task<ServiceResult<NotificationResponse>> CreateNotificationAsync(
+        string senderUserId,
+        NotificationCreateRequest request,
+        CancellationToken ct = default)
+    {
+        if (string.Equals(request.RecipientUserId, senderUserId, StringComparison.Ordinal))
+        {
+            return ServiceResult<NotificationResponse>.Fail(
+                ServiceErrorType.Validation,
+                "Cannot notify yourself.");
+        }
+
+        var recipientExists = await _userRepository.ExistsByIdAsync(request.RecipientUserId, ct);
+        var senderExists = await _userRepository.ExistsByIdAsync(senderUserId, ct);
+        if (!recipientExists || !senderExists)
+        {
+            return ServiceResult<NotificationResponse>.Fail(ServiceErrorType.NotFound, "Recipient or sender was not found.");
+        }
+
+        var now = DateTime.UtcNow;
+
+        var notification = new Notification
+        {
+            RecipientUserId = request.RecipientUserId,
+            SenderUserId = senderUserId,
+            Type = request.Type,
+            Content = request.Content,
+            CreatedAt = now,
+            IsRead = false
+        };
+
+        await _notificationRepository.AddAsync(notification, ct);
+
+        var response = notification.ToNotificationResponse();
+        await _notificationsHub.Clients
+            .Group(NotificationsHub.GroupName(request.RecipientUserId))
+            .SendAsync("notification:created", response, ct);
+
+        return ServiceResult<NotificationResponse>.Ok(response);
+    }
+
+    public async Task<ServiceResult<NotificationResponse>> MarkAsReadAsync(
+        string actorUserId,
+        string notificationId,
+        bool isAdmin,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<NotificationResponse>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
+        var notificationToAuthorize = await _notificationRepository.GetByIdAsync(notificationId, ct);
+        if (notificationToAuthorize is null)
+        {
+            return ServiceResult<NotificationResponse>.Fail(ServiceErrorType.NotFound, "Notification not found.");
+        }
+
+        if (!isAdmin && !string.Equals(notificationToAuthorize.RecipientUserId, actorUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<NotificationResponse>.Fail(ServiceErrorType.Unauthorized, "You are not allowed to modify this notification.");
+        }
+
+        var notification = await _notificationRepository.MarkAsReadAsync(notificationId, ct);
+        if (notification is null)
+        {
+            return ServiceResult<NotificationResponse>.Fail(ServiceErrorType.NotFound, "Notification not found.");
+        }
+
+        return ServiceResult<NotificationResponse>.Ok(notification.ToNotificationResponse());
+    }
+
+    public async Task<ServiceResult<string>> DeleteNotificationAsync(
+        string actorUserId,
+        string notificationId,
+        bool isAdmin,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
+        var notificationToAuthorize = await _notificationRepository.GetByIdAsync(notificationId, ct);
+        if (notificationToAuthorize is null)
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Notification not found.");
+        }
+
+        if (!isAdmin && !string.Equals(notificationToAuthorize.RecipientUserId, actorUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "You are not allowed to delete this notification.");
+        }
+
+        var deleted = await _notificationRepository.DeleteAsync(notificationId, ct);
+        if (!deleted)
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Notification not found.");
+        }
+
+        return ServiceResult<string>.Ok("Notification deleted.");
+    }
+}

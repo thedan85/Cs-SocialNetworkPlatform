@@ -1,6 +1,5 @@
 @SocialNetwork_HostAddress = http://localhost:5245
 
-GET {{SocialNetwork_HostAddress}}/weatherforecast/
-Accept: application/json
+GET {{SocialNetwork_HostAddress}}
 
 ###
