@@ -23,7 +23,7 @@ public class JwtTokenService : IJwtTokenService
 
     public TokenResponse CreateToken(User user, IList<string> roles)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
+        var key = GetSigningKey();
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var expiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenMinutes);
 
@@ -53,6 +53,78 @@ public class JwtTokenService : IJwtTokenService
             ExpiresAt = expiresAt,
             TokenType = "Bearer",
             Roles = roles.ToList()
+        };
+    }
+
+    public SessionTokenResponse CreateSessionToken(User user)
+    {
+        var key = GetSigningKey();
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var expiresAt = DateTime.UtcNow.AddDays(_jwtSettings.SessionTokenDays);
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.Id),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new("token_use", "session")
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _jwtSettings.Issuer,
+            audience: _jwtSettings.Audience,
+            claims: claims,
+            expires: expiresAt,
+            signingCredentials: credentials);
+
+        return new SessionTokenResponse
+        {
+            Token = new JwtSecurityTokenHandler().WriteToken(token),
+            ExpiresAt = expiresAt
+        };
+    }
+
+    public string? GetUserIdFromSessionToken(string sessionToken)
+    {
+        if (string.IsNullOrWhiteSpace(sessionToken))
+        {
+            return null;
+        }
+
+        var handler = new JwtSecurityTokenHandler();
+        try
+        {
+            var principal = handler.ValidateToken(sessionToken, BuildValidationParameters(), out _);
+            var tokenUse = principal.FindFirst("token_use")?.Value;
+            if (!string.Equals(tokenUse, "session", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            return principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private SymmetricSecurityKey GetSigningKey()
+    {
+        return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
+    }
+
+    private TokenValidationParameters BuildValidationParameters()
+    {
+        return new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = _jwtSettings.Issuer,
+            ValidAudience = _jwtSettings.Audience,
+            IssuerSigningKey = GetSigningKey(),
+            ClockSkew = TimeSpan.FromMinutes(1)
         };
     }
 }

@@ -61,6 +61,12 @@ public class TokenResponse
     public List<string> Roles { get; set; } = new();
 }
 
+public class SessionTokenResponse
+{
+    public string Token { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
+}
+
 public class AuthTokenResponse
 {
     public AuthUserResponse User { get; set; } = new();

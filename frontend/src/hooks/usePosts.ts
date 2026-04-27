@@ -6,12 +6,12 @@ export const usePosts = () => {
   const { request, loading, error } = useApi();
   const [posts, setPosts] = useState<Post[]>([]);
 
-  const getPosts = useCallback(async (pageNumber = 1, pageSize = 20) => {
+  const getPosts = useCallback(async (pageNumber = 1, pageSize = 20, append = false) => {
     try {
       const data = await request<Post[]>('get', '/posts', undefined, {
         params: { pageNumber, pageSize }
       });
-      setPosts(data);
+      setPosts((current) => (append ? [...current, ...data] : data));
       return data;
     } catch (err) {
       throw err;

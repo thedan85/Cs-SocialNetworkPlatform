@@ -260,7 +260,7 @@ public class PostsController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<PostShareResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<PostShareResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> SharePost(string postId)
+    public async Task<IActionResult> SharePost(string postId, [FromBody] PostShareCreateRequest request)
     {
         var currentUserId = GetCurrentUserId();
         if (string.IsNullOrWhiteSpace(currentUserId))
@@ -268,7 +268,7 @@ public class PostsController : ApiControllerBase
             return UnauthorizedResponse("User context is missing.");
         }
 
-        var result = await _postsService.SharePostAsync(currentUserId, postId, HttpContext.RequestAborted);
+        var result = await _postsService.SharePostAsync(currentUserId, postId, request, HttpContext.RequestAborted);
         if (!result.Success)
         {
             return FromServiceResult(result);

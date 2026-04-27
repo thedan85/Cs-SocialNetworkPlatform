@@ -7,6 +7,7 @@ import {
   createComment,
   deleteComment,
   getPostComments,
+  getPostById,
   likePost,
   reportPost,
   sharePost,
@@ -27,6 +28,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
   const [isShared, setIsShared] = useState(Boolean(post.isShared));
   const [shareCount, setShareCount] = useState(post.shareCount ?? 0);
   const [shareSubmitting, setShareSubmitting] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareDraft, setShareDraft] = useState('');
+  const [sharePrivacy, setSharePrivacy] = useState<'Public' | 'Friends' | 'Private'>('Public');
+  const [shareError, setShareError] = useState<string | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(showCommentsByDefault);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -57,12 +62,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
   const authorLabel = buildDisplayName(post.firstName, post.lastName, post.userName, post.userId);
   const profilePath = user?.userId === post.userId ? '/profile' : `/users/${post.userId}`;
   const canReport = user?.userId !== post.userId;
+  const hasSharedPost = Boolean(post.sharedPostId);
 
   useEffect(() => {
     setIsLiked(Boolean(post.isLiked));
     setLikesCount(post.likeCount);
     setIsShared(Boolean(post.isShared));
     setShareCount(post.shareCount ?? 0);
+    setShareOpen(false);
+    setShareDraft('');
+    setSharePrivacy('Public');
+    setShareError(null);
   }, [post.postId, post.isLiked, post.likeCount, post.isShared, post.shareCount]);
 
   const handleLike = async () => {
@@ -85,21 +95,50 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
     }
   };
 
-  const handleShare = async () => {
+  const refreshShareState = async () => {
+    const updated = await getPostById(post.postId);
+    setIsShared(Boolean(updated.isShared));
+    setShareCount(updated.shareCount ?? 0);
+  };
+
+  const handleShareToggle = async () => {
     if (shareSubmitting) return;
-    setShareSubmitting(true);
-    try {
-      if (isShared) {
+
+    if (isShared) {
+      setShareSubmitting(true);
+      try {
         await unsharePost(post.postId);
-        setIsShared(false);
-        setShareCount((current) => Math.max(0, current - 1));
-      } else {
-        await sharePost(post.postId);
-        setIsShared(true);
-        setShareCount((current) => current + 1);
+        await refreshShareState();
+      } catch (err) {
+        alert('Unable to unshare this post.');
+      } finally {
+        setShareSubmitting(false);
       }
-    } catch (err) {
-      alert(isShared ? 'Unable to unshare this post.' : 'Unable to share this post.');
+      return;
+    }
+
+    setShareError(null);
+    setShareOpen((current) => !current);
+  };
+
+  const handleShareSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (shareSubmitting) return;
+
+    setShareSubmitting(true);
+    setShareError(null);
+
+    try {
+      const content = shareDraft.trim();
+      await sharePost(post.postId, {
+        content: content.length > 0 ? content : null,
+        privacy: sharePrivacy
+      });
+      await refreshShareState();
+      setShareDraft('');
+      setShareOpen(false);
+    } catch (err: any) {
+      setShareError(err?.message || 'Unable to share this post.');
     } finally {
       setShareSubmitting(false);
     }
@@ -182,23 +221,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
     }
   };
 
-  // 3. Chuẩn hóa dữ liệu từ props post sang định dạng mà PostDetailModal yêu cầu
-  // (Do interface trong postdetail.tsx hơi khác với interface Post của bạn)
-  const formattedPostForModal = {
-    id: post.id || "",
-    user: {
-      name: post.author.username,
-      avatar:
-        post.author.avatarUrl ||
-        `https://ui-avatars.com/api/?name=${post.author.username}`,
-    },
-    image: post.imageUrl || "",
-    caption: post.content,
-    likes: likesCount,
-    timestamp: new Date(post.createdAt).toLocaleString(),
-    comments: [], // Bạn có thể truyền post.comments nếu interface Post có chứa
-  };
-
   return (
     <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-[0_16px_40px_rgba(15,23,42,0.08)] border border-white/60 p-5 transition-all hover:-translate-y-0.5 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)] dark:bg-slate-900/60 dark:border-slate-800/60">
       <div className="flex items-center gap-3 mb-3">
@@ -234,6 +256,74 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
         />
       )}
 
+      {hasSharedPost && (
+        <div className="mb-3 rounded-xl border border-white/70 bg-white/60 p-3 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            <span>Shared post</span>
+            {post.sharedPost && (
+              <span className="font-normal text-slate-400 dark:text-slate-500">
+                {new Date(post.sharedPost.createdAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+
+          {post.sharedPost ? (
+            <div className="mt-2 rounded-lg border border-white/70 bg-white/80 p-3 dark:border-slate-700/60 dark:bg-slate-900/70">
+              <Link
+                to={
+                  user?.userId === post.sharedPost.userId
+                    ? '/profile'
+                    : `/users/${post.sharedPost.userId}`
+                }
+                className="flex items-center gap-3"
+              >
+                <img
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    buildDisplayName(
+                      post.sharedPost.firstName,
+                      post.sharedPost.lastName,
+                      post.sharedPost.userName,
+                      post.sharedPost.userId
+                    )
+                  )}`}
+                  className="h-9 w-9 rounded-full object-cover"
+                  alt="Shared author"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {buildDisplayName(
+                      post.sharedPost.firstName,
+                      post.sharedPost.lastName,
+                      post.sharedPost.userName,
+                      post.sharedPost.userId
+                    )}
+                  </p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    {new Date(post.sharedPost.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </Link>
+
+              <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-200">
+                {post.sharedPost.content}
+              </p>
+
+              {post.sharedPost.imageUrl && (
+                <img
+                  src={post.sharedPost.imageUrl}
+                  className="mt-3 w-full rounded-lg max-h-80 object-cover"
+                  alt="Shared post image"
+                />
+              )}
+            </div>
+          ) : (
+            <div className="mt-2 rounded-lg border border-dashed border-slate-200/80 bg-white/80 p-3 text-sm text-slate-500 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-400">
+              Original post is unavailable.
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center gap-6 text-slate-500 text-sm border-t border-white/60 pt-3 dark:text-slate-400 dark:border-slate-800/60">
         <button
           onClick={handleLike}
@@ -256,7 +346,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
         </button>
 
         <button
-          onClick={handleShare}
+          onClick={handleShareToggle}
           disabled={shareSubmitting}
           aria-pressed={isShared}
           className={`flex items-center gap-1 transition-colors disabled:opacity-60 ${
@@ -278,6 +368,62 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
           </button>
         )}
       </div>
+
+      {shareOpen && !isShared && (
+        <div className="mt-4 rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+          <form onSubmit={handleShareSubmit} className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                Say something about this post
+              </label>
+              <textarea
+                value={shareDraft}
+                onChange={(event) => setShareDraft(event.target.value)}
+                placeholder="Add your thoughts..."
+                rows={3}
+                className="mt-1 w-full rounded-xl border border-emerald-200/70 bg-white/80 px-3 py-2 text-sm text-slate-700 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/70 dark:border-emerald-500/30 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-emerald-400/50 dark:focus:ring-emerald-500/20"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                Privacy
+              </label>
+              <select
+                value={sharePrivacy}
+                onChange={(event) => setSharePrivacy(event.target.value as 'Public' | 'Friends' | 'Private')}
+                className="mt-1 w-full rounded-xl border border-emerald-200/70 bg-white/80 px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-200/70 dark:border-emerald-500/30 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:ring-emerald-500/20"
+              >
+                <option value="Public">Public</option>
+                <option value="Friends">Friends</option>
+                <option value="Private">Private</option>
+              </select>
+            </div>
+
+            {shareError && (
+              <div className="rounded-xl border border-rose-200/70 bg-white/80 px-3 py-2 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-slate-900/60 dark:text-rose-200">
+                {shareError}
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="submit"
+                disabled={shareSubmitting}
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:bg-emerald-300"
+              >
+                {shareSubmitting ? 'Sharing...' : 'Share post'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShareOpen(false)}
+                className="rounded-xl border border-white/70 bg-white/80 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm shadow-slate-200/40 transition-colors hover:bg-white dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-900"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {reportOpen && canReport && (
         <div className="mt-4 rounded-2xl border border-rose-200/70 bg-rose-50/70 p-4 dark:border-rose-500/30 dark:bg-rose-500/10">

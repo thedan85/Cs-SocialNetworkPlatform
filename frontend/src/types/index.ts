@@ -47,10 +47,25 @@ export interface Post {
   content: string;
   imageUrl?: string | null;
   privacy?: 'Public' | 'Friends' | 'Private' | string;
+  sharedPostId?: string | null;
+  sharedPost?: SharedPostPreview | null;
   likeCount: number;
   isLiked?: boolean;
   shareCount?: number;
   isShared?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SharedPostPreview {
+  postId: string;
+  userId: string;
+  userName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  content: string;
+  imageUrl?: string | null;
+  privacy?: 'Public' | 'Friends' | 'Private' | string;
   createdAt: string;
   updatedAt: string;
 }

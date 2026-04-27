@@ -11,6 +11,8 @@ public class Post
     public string? ImageUrl { get; set; }
 
     public string Privacy { get; set; } = PostPrivacy.Public;
+
+    public string? SharedPostId { get; set; }
     
     public int LikeCount { get; set; } = 0;
     
@@ -22,8 +24,10 @@ public class Post
     public ICollection<Like> Likes { get; set; } = new List<Like>();
     public ICollection<PostShare> Shares { get; set; } = new List<PostShare>();
     public ICollection<PostHashtag> PostHashtags { get; set; } = new List<PostHashtag>();
+    public ICollection<Post> SharedPosts { get; set; } = new List<Post>();
     
     // Navigation property
     public virtual User? User { get; set; }
+    public virtual Post? SharedPost { get; set; }
 }
 

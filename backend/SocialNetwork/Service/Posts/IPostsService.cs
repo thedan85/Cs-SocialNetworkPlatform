@@ -52,6 +52,7 @@ public interface IPostsService
     Task<ServiceResult<SharePostResult>> SharePostAsync(
         string actorUserId,
         string postId,
+        PostShareCreateRequest request,
         CancellationToken ct = default);
     Task<ServiceResult<string>> UnlikePostAsync(
         string actorUserId,

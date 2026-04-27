@@ -18,6 +18,8 @@ public interface IPostRepository
 
     Task<Post?> GetByIdAsync(string postId, CancellationToken ct = default);
 
+    Task<Post?> GetSharePostByUserAsync(string sharedPostId, string userId, CancellationToken ct = default);
+
     Task<bool> ExistsByIdAsync(string postId, CancellationToken ct = default);
 
     Task<IReadOnlyList<Post>> GetByUserIdOrderedAsync(string userId, CancellationToken ct = default);

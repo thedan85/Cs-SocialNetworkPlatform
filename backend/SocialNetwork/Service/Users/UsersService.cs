@@ -161,17 +161,55 @@ public class UsersService : IUsersService
         var likedPostIdSet = new HashSet<string>(likedPostIds, StringComparer.OrdinalIgnoreCase);
         var sharedPostIdSet = new HashSet<string>(sharedPostIds, StringComparer.OrdinalIgnoreCase);
 
-        var responses = posts
-            .Select(post =>
+        var responses = new List<PostResponse>(posts.Count);
+
+        foreach (var post in posts)
+        {
+            var response = post.ToPostResponse();
+            response.IsLiked = likedPostIdSet.Contains(post.PostId);
+            response.IsShared = sharedPostIdSet.Contains(post.PostId);
+            response.ShareCount = shareCounts.TryGetValue(post.PostId, out var count) ? count : 0;
+
+            if (post.SharedPost is not null)
             {
-                var response = post.ToPostResponse();
-                response.IsLiked = likedPostIdSet.Contains(post.PostId);
-                response.IsShared = sharedPostIdSet.Contains(post.PostId);
-                response.ShareCount = shareCounts.TryGetValue(post.PostId, out var count) ? count : 0;
-                return response;
-            })
-            .ToList();
+                var canViewShared = await CanViewPostAsync(actorUserId, post.SharedPost, isAdmin, ct);
+                if (!canViewShared)
+                {
+                    response.SharedPost = null;
+                }
+            }
+
+            responses.Add(response);
+        }
 
         return ServiceResult<IReadOnlyList<PostResponse>>.Ok(responses);
+    }
+
+    private async Task<bool> CanViewPostAsync(
+        string actorUserId,
+        Post post,
+        bool isAdmin,
+        CancellationToken ct)
+    {
+        var privacy = string.IsNullOrWhiteSpace(post.Privacy)
+            ? PostPrivacy.Public
+            : post.Privacy;
+
+        if (isAdmin || string.Equals(post.UserId, actorUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.Equals(privacy, PostPrivacy.Public, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.Equals(privacy, PostPrivacy.Friends, StringComparison.OrdinalIgnoreCase))
+        {
+            return await _friendshipRepository.AreFriendsAsync(actorUserId, post.UserId, ct);
+        }
+
+        return false;
     }
 }

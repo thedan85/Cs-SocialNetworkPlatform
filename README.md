@@ -43,7 +43,7 @@ ConnectionStrings__DefaultConnection=Server=localhost;Database=socialnetwork;Use
 Jwt__SecretKey=replace-with-a-long-secret-key
 Jwt__Issuer=InteractHub
 Jwt__Audience=InteractHubClient
-Jwt__AccessTokenMinutes=5760
+Jwt__AccessTokenMinutes=60
 ```
 
 If you want real blob storage for uploads, also add:

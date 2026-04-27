@@ -71,16 +71,26 @@ public class PostsService : IPostsService
         var likedPostIdSet = new HashSet<string>(likedPostIds, StringComparer.OrdinalIgnoreCase);
         var sharedPostIdSet = new HashSet<string>(sharedPostIds, StringComparer.OrdinalIgnoreCase);
 
-        var responses = posts
-            .Select(post =>
+        var responses = new List<PostResponse>(posts.Count);
+
+        foreach (var post in posts)
+        {
+            var response = post.ToPostResponse();
+            response.IsLiked = likedPostIdSet.Contains(post.PostId);
+            response.IsShared = sharedPostIdSet.Contains(post.PostId);
+            response.ShareCount = shareCounts.TryGetValue(post.PostId, out var count) ? count : 0;
+
+            if (post.SharedPost is not null)
             {
-                var response = post.ToPostResponse();
-                response.IsLiked = likedPostIdSet.Contains(post.PostId);
-                response.IsShared = sharedPostIdSet.Contains(post.PostId);
-                response.ShareCount = shareCounts.TryGetValue(post.PostId, out var count) ? count : 0;
-                return response;
-            })
-            .ToList();
+                var canViewShared = await IsPostVisibleAsync(post.SharedPost, actorUserId, isAdmin, ct);
+                if (!canViewShared)
+                {
+                    response.SharedPost = null;
+                }
+            }
+
+            responses.Add(response);
+        }
 
         return ServiceResult<IReadOnlyList<PostResponse>>.Ok(responses);
     }
@@ -111,6 +121,15 @@ public class PostsService : IPostsService
         response.IsLiked = existingLike is not null;
         response.IsShared = existingShare is not null;
         response.ShareCount = shareCount;
+
+        if (postResult.Data.SharedPost is not null)
+        {
+            var canViewShared = await IsPostVisibleAsync(postResult.Data.SharedPost, actorUserId, isAdmin, ct);
+            if (!canViewShared)
+            {
+                response.SharedPost = null;
+            }
+        }
 
         return ServiceResult<PostResponse>.Ok(response);
     }
@@ -237,6 +256,15 @@ public class PostsService : IPostsService
         response.IsLiked = await _likeRepository.GetByPostAndUserAsync(postId, actorUserId, ct) is not null;
         response.IsShared = await _postShareRepository.GetByPostAndUserAsync(postId, actorUserId, ct) is not null;
         response.ShareCount = await _postShareRepository.CountByPostIdAsync(postId, ct);
+
+        if (existingPost.SharedPost is not null)
+        {
+            var canViewShared = await IsPostVisibleAsync(existingPost.SharedPost, actorUserId, isAdmin, ct);
+            if (!canViewShared)
+            {
+                response.SharedPost = null;
+            }
+        }
 
         return ServiceResult<PostResponse>.Ok(response);
     }
@@ -462,6 +490,7 @@ public class PostsService : IPostsService
     public async Task<ServiceResult<SharePostResult>> SharePostAsync(
         string actorUserId,
         string postId,
+        PostShareCreateRequest request,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(actorUserId))
@@ -508,11 +537,42 @@ public class PostsService : IPostsService
                 });
             }
 
+            var privacy = NormalizePrivacy(request.Privacy) ?? PostPrivacy.Public;
+            if (!IsPrivacyAllowed(privacy))
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<SharePostResult>.Fail(ServiceErrorType.Validation, "Invalid privacy setting.");
+            }
+
+            var now = DateTime.UtcNow;
+            var sharePost = new Post
+            {
+                UserId = actorUserId,
+                Content = request.Content?.Trim() ?? string.Empty,
+                ImageUrl = null,
+                Privacy = privacy,
+                SharedPostId = postId,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            await _postRepository.AddAsync(sharePost, ct);
+
+            var tags = HashtagHelper.ExtractTags(sharePost.Content);
+            if (tags.Count > 0)
+            {
+                var hashtags = await _hashtagRepository.AddOrUpdateAsync(tags, ct);
+                await _hashtagRepository.AddPostHashtagsAsync(
+                    sharePost.PostId,
+                    hashtags.Select(tag => tag.HashtagId),
+                    ct);
+            }
+
             var share = new PostShare
             {
                 PostId = postId,
                 UserId = actorUserId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = now
             };
 
             await _postShareRepository.AddAsync(share, ct);
@@ -574,6 +634,12 @@ public class PostsService : IPostsService
             {
                 await transaction.RollbackAsync(ct);
                 return ServiceResult<string>.Ok("Share removed.");
+            }
+
+            var sharedPost = await _postRepository.GetSharePostByUserAsync(postId, actorUserId, ct);
+            if (sharedPost is not null)
+            {
+                await _postRepository.DeleteAsync(sharedPost.PostId, ct);
             }
 
             await transaction.CommitAsync(ct);

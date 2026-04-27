@@ -192,7 +192,6 @@ const AdminDashboard = () => {
     setDeletingPostId(target.postId);
     try {
       await deletePost(target.postId);
-      await reviewPostReport(target.postReportId, true);
       setReports((current) => current.filter((item) => item.postId !== target.postId));
       setPosts((current) => current.filter((item) => item.postId !== target.postId));
     } catch (err) {

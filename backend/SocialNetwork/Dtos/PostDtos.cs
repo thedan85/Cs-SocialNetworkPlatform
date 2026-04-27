@@ -44,10 +44,26 @@ public class PostResponse
     public string Content { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
     public string Privacy { get; set; } = string.Empty;
+    public string? SharedPostId { get; set; }
+    public SharedPostPreview? SharedPost { get; set; }
     public int LikeCount { get; set; }
     public int ShareCount { get; set; }
     public bool IsLiked { get; set; }
     public bool IsShared { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public class SharedPostPreview
+{
+    public string PostId { get; set; } = string.Empty;
+    public string UserId { get; set; } = string.Empty;
+    public string? UserName { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string Content { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
+    public string Privacy { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

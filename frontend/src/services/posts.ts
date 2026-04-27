@@ -29,6 +29,11 @@ export interface PostReportCreateRequest {
   description?: string | null;
 }
 
+export interface PostShareCreateRequest {
+  content?: string | null;
+  privacy?: 'Public' | 'Friends' | 'Private';
+}
+
 export const getPosts = async (pageNumber = 1, pageSize = 20) => {
   const response = await api.get<ApiResponse<Post[]>>('/posts', {
     params: { pageNumber, pageSize }
@@ -80,8 +85,8 @@ export const likePost = async (postId: string) => {
   return unwrapApiResponse(response.data);
 };
 
-export const sharePost = async (postId: string) => {
-  const response = await api.post<ApiResponse<PostShare>>(`/posts/${postId}/shares`, {});
+export const sharePost = async (postId: string, payload: PostShareCreateRequest) => {
+  const response = await api.post<ApiResponse<PostShare>>(`/posts/${postId}/shares`, payload);
   return unwrapApiResponse(response.data);
 };
 

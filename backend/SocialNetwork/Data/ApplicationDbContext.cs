@@ -95,6 +95,9 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .HasMaxLength(20)
                 .HasDefaultValue(PostPrivacy.Public);
 
+            entity.Property(e => e.SharedPostId)
+                .HasMaxLength(36);
+
             entity.Property(e => e.LikeCount)
                 .HasDefaultValue(0);
 
@@ -119,6 +122,11 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .WithOne(e => e.Post)
                 .HasForeignKey(e => e.PostId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.SharedPost)
+                .WithMany(e => e.SharedPosts)
+                .HasForeignKey(e => e.SharedPostId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configure Hashtag entity

@@ -22,6 +22,8 @@ public class PostRepository : IPostRepository
         var posts = await _dbContext.Posts
             .AsNoTracking()
             .Include(post => post.User)
+            .Include(post => post.SharedPost)
+            .ThenInclude(shared => shared.User)
             .OrderByDescending(post => post.CreatedAt)
             .ApplyPaging(pageNumber, pageSize)
             .ToListAsync(ct);
@@ -39,6 +41,8 @@ public class PostRepository : IPostRepository
         var query = _dbContext.Posts
             .AsNoTracking()
             .Include(post => post.User)
+            .Include(post => post.SharedPost)
+            .ThenInclude(shared => shared.User)
             .OrderByDescending(post => post.CreatedAt)
             .AsQueryable();
 
@@ -68,7 +72,22 @@ public class PostRepository : IPostRepository
         return _dbContext.Posts
             .AsNoTracking()
             .Include(post => post.User)
+            .Include(post => post.SharedPost)
+            .ThenInclude(shared => shared.User)
             .FirstOrDefaultAsync(p => p.PostId == postId, ct);
+    }
+
+    public Task<Post?> GetSharePostByUserAsync(string sharedPostId, string userId, CancellationToken ct = default)
+    {
+        return _dbContext.Posts
+            .AsNoTracking()
+            .Include(post => post.User)
+            .Include(post => post.SharedPost)
+            .ThenInclude(shared => shared.User)
+            .OrderByDescending(post => post.CreatedAt)
+            .FirstOrDefaultAsync(
+                post => post.SharedPostId == sharedPostId && post.UserId == userId,
+                ct);
     }
 
     public Task<bool> ExistsByIdAsync(string postId, CancellationToken ct = default)
@@ -81,6 +100,8 @@ public class PostRepository : IPostRepository
         var posts = await _dbContext.Posts
             .AsNoTracking()
             .Include(post => post.User)
+            .Include(post => post.SharedPost)
+            .ThenInclude(shared => shared.User)
             .Where(post => post.UserId == userId)
             .OrderByDescending(post => post.CreatedAt)
             .ToListAsync(ct);
@@ -96,6 +117,8 @@ public class PostRepository : IPostRepository
         var posts = await _dbContext.Posts
             .AsNoTracking()
             .Include(post => post.User)
+            .Include(post => post.SharedPost)
+            .ThenInclude(shared => shared.User)
             .Where(post => post.UserId == userId && privacyValues.Contains(post.Privacy ?? PostPrivacy.Public))
             .OrderByDescending(post => post.CreatedAt)
             .ToListAsync(ct);
@@ -112,6 +135,8 @@ public class PostRepository : IPostRepository
         var posts = await _dbContext.Posts
             .AsNoTracking()
             .Include(post => post.User)
+            .Include(post => post.SharedPost)
+            .ThenInclude(shared => shared.User)
             .Where(p => p.UserId == userId)
             .OrderByDescending(p => p.CreatedAt)
             .ApplyPaging(pageNumber, pageSize)

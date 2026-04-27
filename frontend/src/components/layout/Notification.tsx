@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, UserPlus, Bell, X } from "lucide-react";
 
 interface Notification {

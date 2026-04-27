@@ -34,10 +34,29 @@ public static class ModelMappingExtensions
             Content = post.Content,
             ImageUrl = post.ImageUrl,
             Privacy = string.IsNullOrWhiteSpace(post.Privacy) ? PostPrivacy.Public : post.Privacy,
+            SharedPostId = post.SharedPostId,
+            SharedPost = post.SharedPost is null ? null : post.SharedPost.ToSharedPostPreview(),
             LikeCount = post.LikeCount,
             ShareCount = 0,
             IsLiked = false,
             IsShared = false,
+            CreatedAt = post.CreatedAt,
+            UpdatedAt = post.UpdatedAt
+        };
+    }
+
+    public static SharedPostPreview ToSharedPostPreview(this Post post)
+    {
+        return new SharedPostPreview
+        {
+            PostId = post.PostId,
+            UserId = post.UserId,
+            UserName = post.User?.UserName,
+            FirstName = post.User?.FirstName,
+            LastName = post.User?.LastName,
+            Content = post.Content,
+            ImageUrl = post.ImageUrl,
+            Privacy = string.IsNullOrWhiteSpace(post.Privacy) ? PostPrivacy.Public : post.Privacy,
             CreatedAt = post.CreatedAt,
             UpdatedAt = post.UpdatedAt
         };

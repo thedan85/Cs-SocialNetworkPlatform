@@ -7,4 +7,6 @@ namespace SocialNetwork.Service;
 public interface IJwtTokenService
 {
     TokenResponse CreateToken(User user, IList<string> roles);
+    SessionTokenResponse CreateSessionToken(User user);
+    string? GetUserIdFromSessionToken(string sessionToken);
 }

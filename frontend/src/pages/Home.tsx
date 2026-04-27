@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import CreatePost from '../components/specific/CreatePost';
 import PostCard from '../components/specific/PostCard';
 import PostSkeleton from '../components/common/PostSkeleton';
@@ -7,10 +7,42 @@ import { getTrendingHashtags } from '../services/hashtags';
 import type { HashtagTrendingResult } from '../types';
 
 const Home = () => {
-  const { posts, getPosts, createPost, loading, error } = usePosts();
+  const { posts, getPosts, createPost } = usePosts();
   const [trending, setTrending] = useState<HashtagTrendingResult[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
   const [trendingError, setTrendingError] = useState<string | null>(null);
+  const [postsError, setPostsError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const pageSize = 10;
+
+  const loadPostsPage = useCallback(async (pageNumber: number, append: boolean) => {
+    setPostsError(null);
+    if (pageNumber === 1) {
+      setInitialLoading(true);
+    }
+    if (append) {
+      setLoadingMore(true);
+    }
+
+    try {
+      const data = await getPosts(pageNumber, pageSize, append);
+      setHasMore(data.length === pageSize);
+      setPage(pageNumber);
+    } catch (err: any) {
+      setPostsError(err?.message || 'Unable to load posts right now.');
+    } finally {
+      if (pageNumber === 1) {
+        setInitialLoading(false);
+      }
+      if (append) {
+        setLoadingMore(false);
+      }
+    }
+  }, [getPosts, pageSize]);
 
   const loadTrending = async () => {
     setTrendingLoading(true);
@@ -26,9 +58,31 @@ const Home = () => {
   };
 
   useEffect(() => {
-    getPosts().catch(() => undefined);
+    loadPostsPage(1, false).catch(() => undefined);
     loadTrending().catch(() => undefined);
-  }, [getPosts]);
+  }, [loadPostsPage]);
+
+  useEffect(() => () => observerRef.current?.disconnect(), []);
+
+  const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
+    if (initialLoading || loadingMore) {
+      return;
+    }
+
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    observerRef.current = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting && hasMore && !loadingMore) {
+        loadPostsPage(page + 1, true).catch(() => undefined);
+      }
+    }, { rootMargin: '200px' });
+
+    if (node) {
+      observerRef.current.observe(node);
+    }
+  }, [hasMore, initialLoading, loadingMore, loadPostsPage, page]);
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -80,18 +134,27 @@ const Home = () => {
       </div>
 
       <div className="space-y-4 mt-4">
-        {error && (
+        {postsError && (
           <div className="rounded-xl border border-rose-200/70 bg-rose-50/70 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
-            {error}
+            {postsError}
           </div>
         )}
-        {loading ? (
+        {initialLoading ? (
           <>
             <PostSkeleton />
             <PostSkeleton />
           </>
         ) : (
           posts.map(p => <PostCard key={p.postId} post={p} />)
+        )}
+        {!initialLoading && posts.length > 0 && (
+          <div
+            ref={loadMoreRef}
+            className="flex min-h-[24px] items-center justify-center py-3 text-xs font-semibold text-slate-500 dark:text-slate-400"
+          >
+            {loadingMore && 'Loading more posts...'}
+            {!loadingMore && !hasMore && 'You are all caught up.'}
+          </div>
         )}
       </div>
     </div>

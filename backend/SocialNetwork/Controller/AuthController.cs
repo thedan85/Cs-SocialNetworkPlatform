@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using SocialNetwork.Dtos;
@@ -13,6 +14,9 @@ public class AuthController : ApiControllerBase
 {
     private readonly UserManager<User> _userManager;
     private readonly IJwtTokenService _jwtTokenService;
+    private const string SessionTokenProvider = "SessionToken";
+    private const string SessionTokenName = "SessionToken";
+    private const string SessionTokenCookieName = "session_token";
 
     public AuthController(UserManager<User> userManager, IJwtTokenService jwtTokenService)
     {
@@ -122,21 +126,100 @@ public class AuthController : ApiControllerBase
 
         var roles = await _userManager.GetRolesAsync(user);
         var token = _jwtTokenService.CreateToken(user, roles);
+        var sessionToken = _jwtTokenService.CreateSessionToken(user);
+        var sessionResult = await _userManager.SetAuthenticationTokenAsync(
+            user,
+            SessionTokenProvider,
+            SessionTokenName,
+            sessionToken.Token);
+        if (!sessionResult.Succeeded)
+        {
+            var errors = sessionResult.Errors.Select(error => error.Description);
+            return BadRequestResponse(errors);
+        }
+
+        SetSessionTokenCookie(sessionToken.Token, sessionToken.ExpiresAt);
 
         var response = new AuthTokenResponse
         {
-            User = new AuthUserResponse
-            {
-                UserId = user.Id,
-                UserName = user.UserName ?? string.Empty,
-                Email = user.Email ?? string.Empty,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Bio = user.Bio
-            },
+            User = MapUser(user),
             Token = token
         };
 
         return OkResponse(response);
      }
+
+    /// <summary>Refresh access token using session token cookie.</summary>
+    [HttpPost("refresh-token")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<AuthTokenResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RefreshToken()
+    {
+        if (!Request.Cookies.TryGetValue(SessionTokenCookieName, out var sessionToken)
+            || string.IsNullOrWhiteSpace(sessionToken))
+        {
+            return UnauthorizedResponse("Session token is missing.");
+        }
+
+        var userId = _jwtTokenService.GetUserIdFromSessionToken(sessionToken);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return UnauthorizedResponse("Invalid session token.");
+        }
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            return UnauthorizedResponse("Invalid session token.");
+        }
+
+        var storedToken = await _userManager.GetAuthenticationTokenAsync(
+            user,
+            SessionTokenProvider,
+            SessionTokenName);
+        if (string.IsNullOrWhiteSpace(storedToken)
+            || !string.Equals(storedToken, sessionToken, StringComparison.Ordinal))
+        {
+            return UnauthorizedResponse("Invalid session token.");
+        }
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var token = _jwtTokenService.CreateToken(user, roles);
+
+        var response = new AuthTokenResponse
+        {
+            User = MapUser(user),
+            Token = token
+        };
+
+        return OkResponse(response);
+    }
+
+    private static AuthUserResponse MapUser(User user)
+    {
+        return new AuthUserResponse
+        {
+            UserId = user.Id,
+            UserName = user.UserName ?? string.Empty,
+            Email = user.Email ?? string.Empty,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Bio = user.Bio
+        };
+    }
+
+    private void SetSessionTokenCookie(string token, DateTime expiresAt)
+    {
+        var options = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Expires = expiresAt,
+            Path = "/"
+        };
+
+        Response.Cookies.Append(SessionTokenCookieName, token, options);
+    }
  }

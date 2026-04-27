@@ -6,7 +6,7 @@ interface AuthContextType {
   roles: string[];
   isAdmin: boolean;
   isAuthenticated: boolean;
-  login: (token: string, userData: User, roles: string[]) => void;
+  login: (token: string, userData: User, roles: string[], expiresAt?: string | null) => void;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   loading: boolean;
@@ -40,11 +40,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = (token: string, userData: User, nextRoles: string[]) => {
+  const login = (token: string, userData: User, nextRoles: string[], expiresAt?: string | null) => {
     const safeRoles = Array.isArray(nextRoles)
       ? nextRoles.filter((role) => typeof role === 'string')
       : [];
     localStorage.setItem('token', token);
+    if (expiresAt) {
+      localStorage.setItem('token_expires_at', expiresAt);
+    } else {
+      localStorage.removeItem('token_expires_at');
+    }
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('roles', JSON.stringify(safeRoles));
     setUser(userData);
@@ -62,6 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('token_expires_at');
     localStorage.removeItem('user');
     localStorage.removeItem('roles');
     setUser(null);
