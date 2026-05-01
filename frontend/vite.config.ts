@@ -7,4 +7,8 @@ export default defineConfig({
     port: 3000,
     host: 'localhost',
   },
-})
+  test: {
+    environment: 'jsdom',
+    setupFiles: './tests/setup.ts',
+  },
+} as any)

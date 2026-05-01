@@ -217,6 +217,11 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificationsHub>("/hubs/notifications");
 
-await DatabaseSeeder.SeedAsync(app.Services);
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    await DatabaseSeeder.SeedAsync(app.Services);
+}
 
 app.Run();
+
+public partial class Program { }

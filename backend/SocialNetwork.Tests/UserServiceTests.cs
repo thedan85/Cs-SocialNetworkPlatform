@@ -90,6 +90,35 @@ public class UsersServiceTests
         Assert.False(result.Success);
         Assert.Equal(ServiceErrorType.NotFound, result.ErrorType);
     }
+
+    [Fact]
+    public async Task GetUserByIdAsync_ShouldHideEmail_WhenNotOwnerOrAdmin()
+    {
+        var userId = "user-1";
+        var actorUserId = "actor-1";
+        var user = new User { Id = userId, UserName = "user-1", Email = "user-1@example.com" };
+        _userRepoMock.Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
+                     .ReturnsAsync(user);
+
+        var result = await _usersService.GetUserByIdAsync(actorUserId, userId, false);
+
+        Assert.True(result.Success);
+        Assert.Equal(string.Empty, result.Data!.Email);
+    }
+
+    [Fact]
+    public async Task GetUserByIdAsync_ShouldKeepEmail_WhenAdmin()
+    {
+        var userId = "user-1";
+        var user = new User { Id = userId, UserName = "user-1", Email = "user-1@example.com" };
+        _userRepoMock.Setup(r => r.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
+                     .ReturnsAsync(user);
+
+        var result = await _usersService.GetUserByIdAsync("admin-1", userId, true);
+
+        Assert.True(result.Success);
+        Assert.Equal("user-1@example.com", result.Data!.Email);
+    }
     #endregion
 
     #region UpdateUserAsync Tests (Authorization & Logic)
