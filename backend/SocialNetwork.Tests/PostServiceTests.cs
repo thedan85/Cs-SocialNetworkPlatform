@@ -132,12 +132,29 @@ public class PostsServiceTests
         var result = await _postsService.GetPostsAsync("user-1", false);
         Assert.True(result.Success);
     }
+
+    [Fact]
+    public async Task GetPostsAsync_ShouldReturnUnauthorized_WhenActorMissing()
+    {
+        var result = await _postsService.GetPostsAsync("", false);
+
+        Assert.False(result.Success);
+        Assert.Equal(ServiceErrorType.Unauthorized, result.ErrorType);
+    }
     
     [Fact] 
       public async Task GetPostCommentsAsync_ShouldFail_WhenPostNotFound() {
           _postRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((Post?)null);
           var result = await _postsService.GetPostCommentsAsync("user-1", "1", false);
         Assert.Equal(ServiceErrorType.NotFound, result.ErrorType);
+    }
+
+    [Fact]
+    public async Task GetPostCommentsAsync_ShouldReturnUnauthorized_WhenActorMissing()
+    {
+        var result = await _postsService.GetPostCommentsAsync("", "post-1", false);
+
+        Assert.Equal(ServiceErrorType.Unauthorized, result.ErrorType);
     }
     #endregion
     
@@ -170,6 +187,22 @@ public class PostsServiceTests
         Assert.Equal(ServiceErrorType.NotFound, result.ErrorType);
     }
 
+    [Fact]
+    public async Task CreatePostAsync_ShouldReturnValidation_WhenPrivacyInvalid()
+    {
+        _userRepoMock.Setup(r => r.GetByIdAsync("u1", It.IsAny<CancellationToken>()))
+                     .ReturnsAsync(new User { Id = "u1" });
+
+        var result = await _postsService.CreatePostAsync("u1", new PostCreateRequest
+        {
+            Content = "C",
+            Privacy = "Unknown"
+        });
+
+        Assert.False(result.Success);
+        Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
+    }
+
      [Fact]
       public async Task CreateCommentAsync_ShouldFail_WhenUserContextMissing() {
         var result = await _postsService.CreateCommentAsync("", "post1", new CommentCreateRequest());
@@ -191,6 +224,41 @@ public class PostsServiceTests
                      .ReturnsAsync(new User { Id = "u1" });
         var result = await _postsService.CreatePostAsync("u1", new PostCreateRequest { Content = "C" });
         Assert.True(result.Success);
+    }
+    #endregion
+
+    #region SHARE POST
+    [Fact]
+    public async Task SharePostAsync_ShouldReturnUnauthorized_WhenActorMissing()
+    {
+        var result = await _postsService.SharePostAsync("", "post-1", new PostShareCreateRequest());
+
+        Assert.False(result.Success);
+        Assert.Equal(ServiceErrorType.Unauthorized, result.ErrorType);
+    }
+
+    [Fact]
+    public async Task UnsharePostAsync_ShouldReturnUnauthorized_WhenActorMissing()
+    {
+        var result = await _postsService.UnsharePostAsync("", "post-1");
+
+        Assert.False(result.Success);
+        Assert.Equal(ServiceErrorType.Unauthorized, result.ErrorType);
+    }
+    #endregion
+
+    #region UNLIKE POST
+    [Fact]
+    public async Task UnlikePostAsync_ShouldReturnNotFound_WhenUserMissing()
+    {
+        _userRepoMock
+            .Setup(r => r.ExistsByIdAsync("user-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await _postsService.UnlikePostAsync("user-1", "post-1");
+
+        Assert.False(result.Success);
+        Assert.Equal(ServiceErrorType.NotFound, result.ErrorType);
     }
     #endregion
     
@@ -220,6 +288,37 @@ public class PostsServiceTests
         _postRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(post);
         var result = await _postsService.UpdatePostAsync("u1", "p1", new PostUpdateRequest { Content = "New" }, false);
         Assert.True(result.Success);
+    }
+    #endregion
+
+    #region SHARE POST
+    [Fact]
+    public async Task SharePostAsync_ShouldReturnValidation_WhenPrivacyInvalid()
+    {
+        var mockTransaction = new Mock<IDbContextTransaction>();
+        mockTransaction
+            .Setup(t => t.RollbackAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _unitOfWorkMock
+            .Setup(u => u.BeginTransactionAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockTransaction.Object);
+        _userRepoMock
+            .Setup(r => r.GetByIdAsync("user-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User { Id = "user-1", UserName = "user-1" });
+        _postRepoMock
+            .Setup(r => r.GetByIdAsync("post-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Post { PostId = "post-1", UserId = "owner", Privacy = PostPrivacy.Public });
+
+        var result = await _postsService.SharePostAsync("user-1", "post-1", new PostShareCreateRequest
+        {
+            Content = "Share",
+            Privacy = "Invalid"
+        });
+
+        Assert.False(result.Success);
+        Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
+        mockTransaction.Verify(t => t.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
     #endregion
     

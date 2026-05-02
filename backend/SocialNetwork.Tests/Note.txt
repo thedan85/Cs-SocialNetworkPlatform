@@ -1,2 +1,2 @@
-using this command to test and create report html file 
-Remove-Item -Recurse -Force coveragereport; dotnet test --collect:"XPlat Code Coverage"; reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:"coveragereport" -reporttypes:Html
+Use this command to create the service-only HTML coverage report:
+Remove-Item -Recurse -Force coveragereport; dotnet test --collect:"XPlat Code Coverage"; reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:"coveragereport" -reporttypes:Html -classfilters:+SocialNetwork.Service.*

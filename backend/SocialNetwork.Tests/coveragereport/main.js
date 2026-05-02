@@ -290,84 +290,20 @@ var assemblies = [
   {
     "name": "SocialNetwork",
     "classes": [
-      { "name": "Program", "rp": "SocialNetwork_Program.html", "cl": 0, "ucl": 165, "cal": 165, "tl": 207, "cb": 0, "tb": 20, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Controller.ApiControllerBase", "rp": "SocialNetwork_ApiControllerBase.html", "cl": 0, "ucl": 57, "cal": 57, "tl": 98, "cb": 0, "tb": 16, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Controller.AuthController", "rp": "SocialNetwork_AuthController.html", "cl": 0, "ucl": 66, "cal": 66, "tl": 136, "cb": 0, "tb": 22, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Controller.FriendsController", "rp": "SocialNetwork_FriendsController.html", "cl": 0, "ucl": 50, "cal": 50, "tl": 122, "cb": 0, "tb": 10, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Controller.NotificationsController", "rp": "SocialNetwork_NotificationsController.html", "cl": 0, "ucl": 53, "cal": 53, "tl": 125, "cb": 0, "tb": 12, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Controller.PostsController", "rp": "SocialNetwork_PostsController.html", "cl": 0, "ucl": 96, "cal": 96, "tl": 221, "cb": 0, "tb": 22, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Controller.StoriesController", "rp": "SocialNetwork_StoriesController.html", "cl": 0, "ucl": 43, "cal": 43, "tl": 110, "cb": 0, "tb": 8, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Controller.UsersController", "rp": "SocialNetwork_UsersController.html", "cl": 0, "ucl": 29, "cal": 29, "tl": 86, "cb": 0, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Data.ApplicationDbContext", "rp": "SocialNetwork_ApplicationDbContext.html", "cl": 0, "ucl": 399, "cal": 399, "tl": 456, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Data.DesignTimeDbContextFactory", "rp": "SocialNetwork_DesignTimeDbContextFactory.html", "cl": 0, "ucl": 11, "cal": 11, "tl": 456, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Data.IdentitySeeder", "rp": "SocialNetwork_IdentitySeeder.html", "cl": 0, "ucl": 16, "cal": 16, "tl": 31, "cb": 0, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.ApiResponse<T>", "rp": "SocialNetwork_ApiResponse_1.html", "cl": 0, "ucl": 3, "cal": 3, "tl": 10, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.AuthTokenResponse", "rp": "SocialNetwork_AuthTokenResponse.html", "cl": 0, "ucl": 2, "cal": 2, "tl": 58, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.AuthUserResponse", "rp": "SocialNetwork_AuthUserResponse.html", "cl": 0, "ucl": 4, "cal": 4, "tl": 58, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.CommentCreateRequest", "rp": "SocialNetwork_CommentCreateRequest.html", "cl": 2, "ucl": 0, "cal": 2, "tl": 25, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.CommentResponse", "rp": "SocialNetwork_CommentResponse.html", "cl": 7, "ucl": 0, "cal": 7, "tl": 25, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.FriendRequestCreateRequest", "rp": "SocialNetwork_FriendRequestCreateRequest.html", "cl": 0, "ucl": 2, "cal": 2, "tl": 24, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.FriendshipResponse", "rp": "SocialNetwork_FriendshipResponse.html", "cl": 0, "ucl": 6, "cal": 6, "tl": 24, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.LikeCreateRequest", "rp": "SocialNetwork_LikeCreateRequest.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 18, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.LikeResponse", "rp": "SocialNetwork_LikeResponse.html", "cl": 4, "ucl": 0, "cal": 4, "tl": 18, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.LoginRequest", "rp": "SocialNetwork_LoginRequest.html", "cl": 0, "ucl": 2, "cal": 2, "tl": 58, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.NotificationCreateRequest", "rp": "SocialNetwork_NotificationCreateRequest.html", "cl": 0, "ucl": 4, "cal": 4, "tl": 31, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.NotificationResponse", "rp": "SocialNetwork_NotificationResponse.html", "cl": 0, "ucl": 7, "cal": 7, "tl": 31, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.PostCreateRequest", "rp": "SocialNetwork_PostCreateRequest.html", "cl": 3, "ucl": 0, "cal": 3, "tl": 40, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.PostReportCreateRequest", "rp": "SocialNetwork_PostReportCreateRequest.html", "cl": 1, "ucl": 2, "cal": 3, "tl": 27, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.PostReportResponse", "rp": "SocialNetwork_PostReportResponse.html", "cl": 0, "ucl": 7, "cal": 7, "tl": 27, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.PostResponse", "rp": "SocialNetwork_PostResponse.html", "cl": 7, "ucl": 0, "cal": 7, "tl": 40, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.PostUpdateRequest", "rp": "SocialNetwork_PostUpdateRequest.html", "cl": 2, "ucl": 0, "cal": 2, "tl": 40, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.RegisterRequest", "rp": "SocialNetwork_RegisterRequest.html", "cl": 0, "ucl": 4, "cal": 4, "tl": 58, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.StoryCreateRequest", "rp": "SocialNetwork_StoryCreateRequest.html", "cl": 4, "ucl": 0, "cal": 4, "tl": 30, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.StoryResponse", "rp": "SocialNetwork_StoryResponse.html", "cl": 6, "ucl": 0, "cal": 6, "tl": 30, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.TokenResponse", "rp": "SocialNetwork_TokenResponse.html", "cl": 0, "ucl": 4, "cal": 4, "tl": 58, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.UserResponse", "rp": "SocialNetwork_UserResponse.html", "cl": 8, "ucl": 0, "cal": 8, "tl": 28, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Dtos.UserUpdateRequest", "rp": "SocialNetwork_UserUpdateRequest.html", "cl": 3, "ucl": 0, "cal": 3, "tl": 28, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Extensions.IdentityResultExtensions", "rp": "SocialNetwork_IdentityResultExtensions.html", "cl": 6, "ucl": 0, "cal": 6, "tl": 14, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Extensions.ModelMappingExtensions", "rp": "SocialNetwork_ModelMappingExtensions.html", "cl": 57, "ucl": 35, "cal": 92, "tl": 115, "cb": 8, "tb": 8, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Extensions.QueryableExtensions", "rp": "SocialNetwork_QueryableExtensions.html", "cl": 0, "ucl": 11, "cal": 11, "tl": 29, "cb": 0, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Helpers.BlobFileNameHelper", "rp": "SocialNetwork_BlobFileNameHelper.html", "cl": 0, "ucl": 18, "cal": 18, "tl": 32, "cb": 0, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Helpers.NotificationContentHelper", "rp": "SocialNetwork_NotificationContentHelper.html", "cl": 0, "ucl": 6, "cal": 6, "tl": 14, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Migrations.ApplicationDbContextModelSnapshot", "rp": "SocialNetwork_ApplicationDbContextModelSnapshot.html", "cl": 0, "ucl": 821, "cal": 821, "tl": 879, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Migrations.FourthCreate", "rp": "SocialNetwork_FourthCreate.html", "cl": 0, "ucl": 875, "cal": 875, "tl": 962, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Migrations.InitialCreate", "rp": "SocialNetwork_InitialCreate.html", "cl": 0, "ucl": 1014, "cal": 1014, "tl": 1121, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Migrations.SecondCreate", "rp": "SocialNetwork_SecondCreate.html", "cl": 0, "ucl": 913, "cal": 913, "tl": 1006, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Migrations.ThirdCreate", "rp": "SocialNetwork_ThirdCreate.html", "cl": 0, "ucl": 1217, "cal": 1217, "tl": 1340, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Migrations.UseCurrentTimestampPrecision", "rp": "SocialNetwork_UseCurrentTimestampPrecision.html", "cl": 0, "ucl": 1083, "cal": 1083, "tl": 1184, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Model.Comment", "rp": "SocialNetwork_Comment.html", "cl": 8, "ucl": 2, "cal": 10, "tl": 23, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Model.Friendship", "rp": "SocialNetwork_Friendship.html", "cl": 0, "ucl": 9, "cal": 9, "tl": 23, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Model.Hashtag", "rp": "SocialNetwork_Hashtag.html", "cl": 0, "ucl": 5, "cal": 5, "tl": 14, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Model.Like", "rp": "SocialNetwork_Like.html", "cl": 4, "ucl": 6, "cal": 10, "tl": 22, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Model.Notification", "rp": "SocialNetwork_Notification.html", "cl": 0, "ucl": 9, "cal": 9, "tl": 21, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Model.Post", "rp": "SocialNetwork_Post.html", "cl": 10, "ucl": 1, "cal": 11, "tl": 26, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Model.PostHashtag", "rp": "SocialNetwork_PostHashtag.html", "cl": 0, "ucl": 5, "cal": 5, "tl": 14, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Model.PostReport", "rp": "SocialNetwork_PostReport.html", "cl": 0, "ucl": 9, "cal": 9, "tl": 22, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Model.Story", "rp": "SocialNetwork_Story.html", "cl": 7, "ucl": 1, "cal": 8, "tl": 20, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Model.User", "rp": "SocialNetwork_User.html", "cl": 15, "ucl": 0, "cal": 15, "tl": 23, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Model.UserFriendship", "rp": "SocialNetwork_UserFriendship.html", "cl": 0, "ucl": 5, "cal": 5, "tl": 14, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Repository.CommentRepository", "rp": "SocialNetwork_CommentRepository.html", "cl": 0, "ucl": 23, "cal": 23, "tl": 47, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Repository.FriendshipRepository", "rp": "SocialNetwork_FriendshipRepository.html", "cl": 0, "ucl": 60, "cal": 60, "tl": 103, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Repository.LikeRepository", "rp": "SocialNetwork_LikeRepository.html", "cl": 0, "ucl": 13, "cal": 13, "tl": 28, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Repository.NotificationRepository", "rp": "SocialNetwork_NotificationRepository.html", "cl": 0, "ucl": 61, "cal": 61, "tl": 105, "cb": 0, "tb": 8, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Repository.PostReportRepository", "rp": "SocialNetwork_PostReportRepository.html", "cl": 0, "ucl": 51, "cal": 51, "tl": 87, "cb": 0, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Repository.PostRepository", "rp": "SocialNetwork_PostRepository.html", "cl": 0, "ucl": 73, "cal": 73, "tl": 119, "cb": 0, "tb": 4, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Repository.StoryRepository", "rp": "SocialNetwork_StoryRepository.html", "cl": 0, "ucl": 37, "cal": 37, "tl": 69, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Repository.UnitOfWork", "rp": "SocialNetwork_UnitOfWork.html", "cl": 0, "ucl": 7, "cal": 7, "tl": 19, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Repository.UserRepository", "rp": "SocialNetwork_UserRepository.html", "cl": 0, "ucl": 60, "cal": 60, "tl": 98, "cb": 0, "tb": 4, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Service.AzureBlobStorageOptions", "rp": "SocialNetwork_AzureBlobStorageOptions.html", "cl": 0, "ucl": 2, "cal": 2, "tl": 9, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Service.AzureBlobStorageService", "rp": "SocialNetwork_AzureBlobStorageService.html", "cl": 0, "ucl": 47, "cal": 47, "tl": 85, "cb": 0, "tb": 14, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Service.FriendsService", "rp": "SocialNetwork_FriendsService.html", "cl": 0, "ucl": 164, "cal": 164, "tl": 266, "cb": 0, "tb": 50, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Service.JwtTokenService", "rp": "SocialNetwork_JwtTokenService.html", "cl": 0, "ucl": 33, "cal": 33, "tl": 58, "cb": 0, "tb": 6, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.AzureBlobStorageOptions", "rp": "SocialNetwork_AzureBlobStorageOptions.html", "cl": 2, "ucl": 0, "cal": 2, "tl": 9, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.AzureBlobStorageService", "rp": "SocialNetwork_AzureBlobStorageService.html", "cl": 25, "ucl": 22, "cal": 47, "tl": 85, "cb": 8, "tb": 14, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.FriendsService", "rp": "SocialNetwork_FriendsService.html", "cl": 174, "ucl": 14, "cal": 188, "tl": 294, "cb": 40, "tb": 48, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.HashtagsService", "rp": "SocialNetwork_HashtagsService.html", "cl": 38, "ucl": 0, "cal": 38, "tl": 67, "cb": 2, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.JwtTokenService", "rp": "SocialNetwork_JwtTokenService.html", "cl": 84, "ucl": 3, "cal": 87, "tl": 130, "cb": 11, "tb": 14, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "SocialNetwork.Service.LikePostResult", "rp": "SocialNetwork_LikePostResult.html", "cl": 2, "ucl": 0, "cal": 2, "tl": 9, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Service.NoOpFileStorageService", "rp": "SocialNetwork_NoOpFileStorageService.html", "cl": 0, "ucl": 13, "cal": 13, "tl": 35, "cb": 0, "tb": 4, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Service.NotificationsService", "rp": "SocialNetwork_NotificationsService.html", "cl": 0, "ucl": 97, "cal": 97, "tl": 170, "cb": 0, "tb": 30, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Service.PostsService", "rp": "SocialNetwork_PostsService.html", "cl": 161, "ucl": 42, "cal": 203, "tl": 345, "cb": 36, "tb": 52, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.NoOpFileStorageService", "rp": "SocialNetwork_NoOpFileStorageService.html", "cl": 13, "ucl": 0, "cal": 13, "tl": 35, "cb": 4, "tb": 4, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.NotificationsService", "rp": "SocialNetwork_NotificationsService.html", "cl": 81, "ucl": 22, "cal": 103, "tl": 180, "cb": 21, "tb": 30, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.PostsService", "rp": "SocialNetwork_PostsService.html", "cl": 270, "ucl": 378, "cal": 648, "tl": 986, "cb": 78, "tb": 224, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "SocialNetwork.Service.ServiceResult", "rp": "SocialNetwork_ServiceResult.html", "cl": 3, "ucl": 16, "cal": 19, "tl": 73, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "SocialNetwork.Service.ServiceResult<T>", "rp": "SocialNetwork_ServiceResult_1.html", "cl": 21, "ucl": 0, "cal": 21, "tl": 73, "cb": 2, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Service.StoriesService", "rp": "SocialNetwork_StoriesService.html", "cl": 59, "ucl": 9, "cal": 68, "tl": 125, "cb": 18, "tb": 22, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Service.UsersService", "rp": "SocialNetwork_UsersService.html", "cl": 46, "ucl": 14, "cal": 60, "tl": 104, "cb": 11, "tb": 14, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Settings.JwtSettings", "rp": "SocialNetwork_JwtSettings.html", "cl": 0, "ucl": 4, "cal": 4, "tl": 9, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.SharePostResult", "rp": "SocialNetwork_SharePostResult.html", "cl": 2, "ucl": 0, "cal": 2, "tl": 9, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.StoriesService", "rp": "SocialNetwork_StoriesService.html", "cl": 73, "ucl": 9, "cal": 82, "tl": 140, "cb": 18, "tb": 22, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.UsersService", "rp": "SocialNetwork_UsersService.html", "cl": 75, "ucl": 56, "cal": 131, "tl": 215, "cb": 23, "tb": 46, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
     ]},
 ];
 
@@ -382,100 +318,82 @@ var riskHotspotMetrics = [
 
 var riskHotspots = [
   {
-    "assembly": "SocialNetwork", "class": "Program", "reportPath": "SocialNetwork_Program.html", "methodName": "<Main>$()", "methodShortName": "<Main>$()", "fileIndex": 0, "line": 18,
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.PostsService", "reportPath": "SocialNetwork_PostsService.html", "methodName": "SharePostAsync()", "methodShortName": "SharePostAsync()", "fileIndex": 0, "line": 495,
     "metrics": [
-      { "value": 420, "exceeded": true },
-      { "value": 20, "exceeded": true },
+      { "value": 213, "exceeded": true },
+      { "value": 22, "exceeded": true },
     ]},
   {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.FriendsService", "reportPath": "SocialNetwork_FriendsService.html", "methodName": "AcceptFriendRequestAsync()", "methodShortName": "AcceptFriendRequestAsync()", "fileIndex": 0, "line": 109,
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.PostsService", "reportPath": "SocialNetwork_PostsService.html", "methodName": "UnsharePostAsync()", "methodShortName": "UnsharePostAsync()", "fileIndex": 0, "line": 600,
     "metrics": [
-      { "value": 342, "exceeded": true },
-      { "value": 18, "exceeded": true },
+      { "value": 144, "exceeded": true },
+      { "value": 14, "exceeded": false },
     ]},
   {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.FriendsService", "reportPath": "SocialNetwork_FriendsService.html", "methodName": "CreateFriendRequestAsync()", "methodShortName": "CreateFriendRequestAsync()", "fileIndex": 0, "line": 32,
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.PostsService", "reportPath": "SocialNetwork_PostsService.html", "methodName": "UnlikePostAsync()", "methodShortName": "UnlikePostAsync()", "fileIndex": 0, "line": 659,
     "metrics": [
-      { "value": 272, "exceeded": true },
-      { "value": 16, "exceeded": true },
+      { "value": 122, "exceeded": true },
+      { "value": 14, "exceeded": false },
     ]},
   {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Controller.AuthController", "reportPath": "SocialNetwork_AuthController.html", "methodName": "Register()", "methodShortName": "Register()", "fileIndex": 0, "line": 41,
-    "metrics": [
-      { "value": 156, "exceeded": true },
-      { "value": 12, "exceeded": false },
-    ]},
-  {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.FriendsService", "reportPath": "SocialNetwork_FriendsService.html", "methodName": "RejectFriendRequestAsync()", "methodShortName": "RejectFriendRequestAsync()", "fileIndex": 0, "line": 179,
-    "metrics": [
-      { "value": 156, "exceeded": true },
-      { "value": 12, "exceeded": false },
-    ]},
-  {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Controller.AuthController", "reportPath": "SocialNetwork_AuthController.html", "methodName": "Login()", "methodShortName": "Login()", "fileIndex": 0, "line": 104,
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.UsersService", "reportPath": "SocialNetwork_UsersService.html", "methodName": "CanViewPostAsync()", "methodShortName": "CanViewPostAsync()", "fileIndex": 0, "line": 193,
     "metrics": [
       { "value": 110, "exceeded": true },
       { "value": 10, "exceeded": false },
     ]},
   {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.NotificationsService", "reportPath": "SocialNetwork_NotificationsService.html", "methodName": "DeleteNotificationAsync()", "methodShortName": "DeleteNotificationAsync()", "fileIndex": 0, "line": 145,
-    "metrics": [
-      { "value": 110, "exceeded": true },
-      { "value": 10, "exceeded": false },
-    ]},
-  {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.NotificationsService", "reportPath": "SocialNetwork_NotificationsService.html", "methodName": "MarkAsReadAsync()", "methodShortName": "MarkAsReadAsync()", "fileIndex": 0, "line": 114,
-    "metrics": [
-      { "value": 110, "exceeded": true },
-      { "value": 10, "exceeded": false },
-    ]},
-  {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Controller.ApiControllerBase", "reportPath": "SocialNetwork_ApiControllerBase.html", "methodName": "ErrorFromServiceResult(System.Nullable`1<SocialNetwork.Service.ServiceErrorType>,System.Collections.Generic.IReadOnlyList`1<System.String>)", "methodShortName": "ErrorFromServiceResult(...)", "fileIndex": 0, "line": 63,
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.PostsService", "reportPath": "SocialNetwork_PostsService.html", "methodName": "BuildDisplayName(SocialNetwork.Model.User)", "methodShortName": "BuildDisplayName(...)", "fileIndex": 0, "line": 886,
     "metrics": [
       { "value": 72, "exceeded": true },
       { "value": 8, "exceeded": false },
     ]},
   {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Controller.PostsController", "reportPath": "SocialNetwork_PostsController.html", "methodName": "LikePost()", "methodShortName": "LikePost()", "fileIndex": 0, "line": 176,
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.PostsService", "reportPath": "SocialNetwork_PostsService.html", "methodName": "LikePostAsync()", "methodShortName": "LikePostAsync()", "fileIndex": 0, "line": 411,
     "metrics": [
-      { "value": 72, "exceeded": true },
+      { "value": 53, "exceeded": true },
+      { "value": 14, "exceeded": false },
+    ]},
+  {
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.PostsService", "reportPath": "SocialNetwork_PostsService.html", "methodName": "UpdatePostAsync()", "methodShortName": "UpdatePostAsync()", "fileIndex": 0, "line": 220,
+    "metrics": [
+      { "value": 52, "exceeded": true },
+      { "value": 18, "exceeded": true },
+    ]},
+  {
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.PostsService", "reportPath": "SocialNetwork_PostsService.html", "methodName": "NotifyFriendsOfShareAsync()", "methodShortName": "NotifyFriendsOfShareAsync()", "fileIndex": 0, "line": 854,
+    "metrics": [
+      { "value": 42, "exceeded": true },
+      { "value": 6, "exceeded": false },
+    ]},
+  {
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.PostsService", "reportPath": "SocialNetwork_PostsService.html", "methodName": "ReviewPostReportAsync()", "methodShortName": "ReviewPostReportAsync()", "fileIndex": 0, "line": 833,
+    "metrics": [
+      { "value": 42, "exceeded": true },
+      { "value": 6, "exceeded": false },
+    ]},
+  {
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.PostsService", "reportPath": "SocialNetwork_PostsService.html", "methodName": "CreateCommentAsync()", "methodShortName": "CreateCommentAsync()", "fileIndex": 0, "line": 335,
+    "metrics": [
+      { "value": 40, "exceeded": true },
       { "value": 8, "exceeded": false },
     ]},
   {
     "assembly": "SocialNetwork", "class": "SocialNetwork.Service.AzureBlobStorageService", "reportPath": "SocialNetwork_AzureBlobStorageService.html", "methodName": "UploadAsync()", "methodShortName": "UploadAsync()", "fileIndex": 0, "line": 36,
     "metrics": [
-      { "value": 72, "exceeded": true },
+      { "value": 33, "exceeded": true },
       { "value": 8, "exceeded": false },
     ]},
   {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Data.IdentitySeeder", "reportPath": "SocialNetwork_IdentitySeeder.html", "methodName": "SeedRolesAsync()", "methodShortName": "SeedRolesAsync()", "fileIndex": 0, "line": 14,
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.UsersService", "reportPath": "SocialNetwork_UsersService.html", "methodName": "GetUserPostsAsync()", "methodShortName": "GetUserPostsAsync()", "fileIndex": 0, "line": 135,
     "metrics": [
-      { "value": 42, "exceeded": true },
-      { "value": 6, "exceeded": false },
+      { "value": 32, "exceeded": true },
+      { "value": 16, "exceeded": true },
     ]},
   {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Extensions.QueryableExtensions", "reportPath": "SocialNetwork_QueryableExtensions.html", "methodName": "ApplyPaging(System.Linq.IQueryable`1<T>,System.Int32,System.Int32,System.Int32,System.Int32)", "methodShortName": "ApplyPaging(...)", "fileIndex": 0, "line": 16,
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.FriendsService", "reportPath": "SocialNetwork_FriendsService.html", "methodName": "AcceptFriendRequestAsync()", "methodShortName": "AcceptFriendRequestAsync()", "fileIndex": 0, "line": 133,
     "metrics": [
-      { "value": 42, "exceeded": true },
-      { "value": 6, "exceeded": false },
-    ]},
-  {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Helpers.BlobFileNameHelper", "reportPath": "SocialNetwork_BlobFileNameHelper.html", "methodName": "CreateUniqueBlobName(System.String)", "methodShortName": "CreateUniqueBlobName(...)", "fileIndex": 0, "line": 10,
-    "metrics": [
-      { "value": 42, "exceeded": true },
-      { "value": 6, "exceeded": false },
-    ]},
-  {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.JwtTokenService", "reportPath": "SocialNetwork_JwtTokenService.html", "methodName": "CreateToken(SocialNetwork.Model.User,System.Collections.Generic.IList`1<System.String>)", "methodShortName": "CreateToken(...)", "fileIndex": 0, "line": 25,
-    "metrics": [
-      { "value": 42, "exceeded": true },
-      { "value": 6, "exceeded": false },
-    ]},
-  {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.NotificationsService", "reportPath": "SocialNetwork_NotificationsService.html", "methodName": "CreateNotificationAsync()", "methodShortName": "CreateNotificationAsync()", "fileIndex": 0, "line": 77,
-    "metrics": [
-      { "value": 42, "exceeded": true },
-      { "value": 6, "exceeded": false },
+      { "value": 18, "exceeded": false },
+      { "value": 18, "exceeded": true },
     ]},
 ];
 
