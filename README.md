@@ -99,6 +99,56 @@ On a fresh database, the backend migrates the schema and seeds the `User` and `A
 - The frontend stores the auth token, user, and roles in `localStorage`.
 - Swagger is enabled on the backend for local API exploration.
 
+## API Endpoints
+
+Most endpoints require authentication. Admin-only endpoints are marked as such.
+
+| Area | Method | Path | Notes |
+| --- | --- | --- | --- |
+| Auth | POST | `/api/auth/register` | Anonymous |
+| Auth | POST | `/api/auth/login` | Anonymous |
+| Auth | POST | `/api/auth/refresh-token` | Anonymous |
+| Users | GET | `/api/users` | Admin only |
+| Users | GET | `/api/users/search` | Query params: `query`, `pageNumber`, `pageSize` |
+| Users | GET | `/api/users/{userId}` | Current user or admin |
+| Users | PUT | `/api/users/{userId}` | Current user or admin |
+| Users | GET | `/api/users/{userId}/posts` | Current user or admin |
+| Uploads | POST | `/api/uploads/images` | Form upload |
+| Stories | GET | `/api/stories` | Query params: `pageNumber`, `pageSize` |
+| Stories | GET | `/api/stories/{storyId}` | Authenticated |
+| Stories | GET | `/api/stories/user/{userId}` | Current user or admin |
+| Stories | POST | `/api/stories` | Creates a story for the current user |
+| Stories | DELETE | `/api/stories/{storyId}` | Current user or admin |
+| Posts | GET | `/api/posts` | Query params: `pageNumber`, `pageSize` |
+| Posts | GET | `/api/posts/{postId}` | Authenticated |
+| Posts | POST | `/api/posts` | Creates a post for the current user |
+| Posts | PUT | `/api/posts/{postId}` | Update a post |
+| Posts | DELETE | `/api/posts/{postId}` | Delete a post |
+| Posts | GET | `/api/posts/{postId}/comments` | Query params: `pageNumber`, `pageSize` |
+| Posts | POST | `/api/posts/{postId}/comments` | Add a comment |
+| Posts | DELETE | `/api/posts/{postId}/comments/{commentId}` | Delete a comment |
+| Posts | POST | `/api/posts/{postId}/likes` | Like a post |
+| Posts | DELETE | `/api/posts/{postId}/likes` | Unlike a post |
+| Posts | POST | `/api/posts/{postId}/shares` | Share a post |
+| Posts | DELETE | `/api/posts/{postId}/shares` | Unshare a post |
+| Posts | POST | `/api/posts/{postId}/report` | Report a post |
+| Friends | POST | `/api/friends/requests` | Send a friend request |
+| Friends | PUT | `/api/friends/requests/{friendshipId}/accept` | Accept a request |
+| Friends | PUT | `/api/friends/requests/{friendshipId}/reject` | Reject a request |
+| Friends | GET | `/api/friends/relationship/{userId}` | Get relationship status |
+| Friends | DELETE | `/api/friends/{friendshipId}` | Remove a friendship |
+| Friends | GET | `/api/friends/{userId}` | Get accepted friends |
+| Friends | GET | `/api/friends/requests/{userId}` | Get pending requests |
+| Hashtags | GET | `/api/hashtags/search` | Query params: `query`, `pageNumber`, `pageSize`, `postsPerHashtag` |
+| Hashtags | GET | `/api/hashtags/trending` | Query params: `pageNumber`, `pageSize` |
+| Notifications | GET | `/api/notifications/user/{userId}` | Current user or admin |
+| Notifications | GET | `/api/notifications/user/{userId}/unread` | Current user or admin |
+| Notifications | POST | `/api/notifications` | Create a notification |
+| Notifications | PUT | `/api/notifications/{notificationId}/read` | Mark as read |
+| Notifications | DELETE | `/api/notifications/{notificationId}` | Delete a notification |
+| Admin reports | GET | `/api/post-reports/pending` | Admin only |
+| Admin reports | PUT | `/api/post-reports/{postReportId}/review` | Admin only |
+
 ## Screens
 
 - Public: login, register
