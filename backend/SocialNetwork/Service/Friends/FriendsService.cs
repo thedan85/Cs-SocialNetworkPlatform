@@ -242,6 +242,93 @@ public class FriendsService : IFriendsService
         return ServiceResult<FriendshipResponse>.Ok(friendship.ToFriendshipResponse());
     }
 
+    public async Task<ServiceResult<FriendRelationshipResponse>> GetRelationshipAsync(
+        string actorUserId,
+        string targetUserId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<FriendRelationshipResponse>.Fail(
+                ServiceErrorType.Unauthorized,
+                "User context is missing.");
+        }
+
+        if (string.IsNullOrWhiteSpace(targetUserId))
+        {
+            return ServiceResult<FriendRelationshipResponse>.Fail(
+                ServiceErrorType.Validation,
+                "Target user is required.");
+        }
+
+        var targetExists = await _userRepository.ExistsByIdAsync(targetUserId, ct);
+        if (!targetExists)
+        {
+            return ServiceResult<FriendRelationshipResponse>.Fail(ServiceErrorType.NotFound, "User not found.");
+        }
+
+        var friendship = await _friendshipRepository.GetBetweenUsersAsync(actorUserId, targetUserId, ct);
+        if (friendship is null)
+        {
+            return ServiceResult<FriendRelationshipResponse>.Ok(new FriendRelationshipResponse());
+        }
+
+        var isRequester = string.Equals(friendship.UserId1, actorUserId, StringComparison.OrdinalIgnoreCase);
+        var isAddressee = string.Equals(friendship.UserId2, actorUserId, StringComparison.OrdinalIgnoreCase);
+
+        var response = new FriendRelationshipResponse
+        {
+            Status = friendship.Status,
+            FriendshipId = friendship.FriendshipId,
+            RequesterUserId = friendship.UserId1,
+            AddresseeUserId = friendship.UserId2,
+            IsRequester = isRequester,
+            IsAddressee = isAddressee
+        };
+
+        return ServiceResult<FriendRelationshipResponse>.Ok(response);
+    }
+
+    public async Task<ServiceResult<string>> RemoveFriendAsync(
+        string actorUserId,
+        string friendshipId,
+        bool isAdmin,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
+        if (string.IsNullOrWhiteSpace(friendshipId))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Validation, "Friendship id is required.");
+        }
+
+        var friendship = await _friendshipRepository.GetByIdAsync(friendshipId, ct);
+        if (friendship is null)
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Friendship not found.");
+        }
+
+        if (!isAdmin &&
+            !string.Equals(friendship.UserId1, actorUserId, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(friendship.UserId2, actorUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "You are not allowed to remove this friendship.");
+        }
+
+        if (!string.Equals(friendship.Status, "Accepted", StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<string>.Fail(
+                ServiceErrorType.Validation,
+                "Only accepted friendships can be removed.");
+        }
+
+        await _friendshipRepository.DeleteAsync(friendshipId, ct);
+        return ServiceResult<string>.Ok("Friend removed.");
+    }
+
     public async Task<ServiceResult<IReadOnlyList<FriendshipResponse>>> GetFriendsAsync(
         string userId,
         int pageNumber = 1,

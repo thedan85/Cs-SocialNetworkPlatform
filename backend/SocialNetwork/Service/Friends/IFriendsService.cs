@@ -19,6 +19,17 @@ public interface IFriendsService
         bool isAdmin,
         CancellationToken ct = default);
 
+    Task<ServiceResult<FriendRelationshipResponse>> GetRelationshipAsync(
+        string actorUserId,
+        string targetUserId,
+        CancellationToken ct = default);
+
+    Task<ServiceResult<string>> RemoveFriendAsync(
+        string actorUserId,
+        string friendshipId,
+        bool isAdmin,
+        CancellationToken ct = default);
+
     Task<ServiceResult<IReadOnlyList<FriendshipResponse>>> GetFriendsAsync(
         string userId,
         int pageNumber = 1,

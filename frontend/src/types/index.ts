@@ -168,6 +168,15 @@ export interface Friendship {
   updatedAt?: string | null;
 }
 
+export interface FriendRelationship {
+  status: string;
+  friendshipId?: string | null;
+  requesterUserId?: string | null;
+  addresseeUserId?: string | null;
+  isRequester: boolean;
+  isAddressee: boolean;
+}
+
 export interface Notification {
   notificationId: string;
   recipientUserId: string;

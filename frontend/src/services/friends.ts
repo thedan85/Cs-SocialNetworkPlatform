@@ -1,5 +1,5 @@
 import api, { unwrapApiResponse } from './api';
-import type { ApiResponse, Friendship } from '../types';
+import type { ApiResponse, FriendRelationship, Friendship } from '../types';
 
 export interface FriendRequestCreateRequest {
   addresseeUserId: string;
@@ -31,5 +31,15 @@ export const getPendingRequests = async (userId: string, pageNumber = 1, pageSiz
   const response = await api.get<ApiResponse<Friendship[]>>(`/friends/requests/${userId}`, {
     params: { pageNumber, pageSize }
   });
+  return unwrapApiResponse(response.data);
+};
+
+export const getFriendRelationship = async (userId: string) => {
+  const response = await api.get<ApiResponse<FriendRelationship>>(`/friends/relationship/${userId}`);
+  return unwrapApiResponse(response.data);
+};
+
+export const removeFriend = async (friendshipId: string) => {
+  const response = await api.delete<ApiResponse<{ message: string }>>(`/friends/${friendshipId}`);
   return unwrapApiResponse(response.data);
 };

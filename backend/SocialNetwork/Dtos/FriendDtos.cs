@@ -28,3 +28,13 @@ public class FriendshipResponse
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }
+
+public class FriendRelationshipResponse
+{
+    public string Status { get; set; } = "None";
+    public string? FriendshipId { get; set; }
+    public string? RequesterUserId { get; set; }
+    public string? AddresseeUserId { get; set; }
+    public bool IsRequester { get; set; }
+    public bool IsAddressee { get; set; }
+}
