@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using SocialNetwork.Helpers;
 
 namespace SocialNetwork.Dtos;
 
@@ -13,7 +14,7 @@ public class PostCreateRequest
     public string Content { get; set; } = string.Empty;
 
     [StringLength(500)]
-    [Url]
+    [RelativeOrAbsoluteUrl]
     public string? ImageUrl { get; set; }
 
     [StringLength(20)]
@@ -27,7 +28,7 @@ public class PostUpdateRequest
     public string Content { get; set; } = string.Empty;
 
     [StringLength(500)]
-    [Url]
+    [RelativeOrAbsoluteUrl]
     public string? ImageUrl { get; set; }
 
     [StringLength(20)]

@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using SocialNetwork.Helpers;
 
 namespace SocialNetwork.Dtos;
 
@@ -26,7 +27,7 @@ public class UserUpdateRequest
     public string? LastName { get; set; }
 
     [StringLength(500)]
-    [Url]
+    [RelativeOrAbsoluteUrl]
     public string? ProfilePicture { get; set; }
 
     [StringLength(1000)]
