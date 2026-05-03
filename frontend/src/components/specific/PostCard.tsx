@@ -3,6 +3,7 @@ import { Flag, Heart, MessageCircle, Share2, Send, Trash2 } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { resolveImageUrl } from '../../utils/resolveImageUrl';
 import {
   createComment,
   deleteComment,
@@ -63,6 +64,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
   const profilePath = user?.userId === post.userId ? '/profile' : `/users/${post.userId}`;
   const canReport = user?.userId !== post.userId;
   const hasSharedPost = Boolean(post.sharedPostId);
+  const postImageUrl = resolveImageUrl(post.imageUrl);
+  const sharedPostImageUrl = resolveImageUrl(post.sharedPost?.imageUrl);
 
   useEffect(() => {
     setIsLiked(Boolean(post.isLiked));
@@ -248,9 +251,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
 
       <p className="whitespace-pre-wrap text-slate-700 mb-3 dark:text-slate-200">{post.content}</p>
 
-      {post.imageUrl && (
+      {postImageUrl && (
         <img
-          src={post.imageUrl}
+          src={postImageUrl}
           className="w-full rounded-lg mb-3 max-h-96 object-cover"
           alt="Post image"
         />
@@ -308,9 +311,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
                 {post.sharedPost.content}
               </p>
 
-              {post.sharedPost.imageUrl && (
+              {sharedPostImageUrl && (
                 <img
-                  src={post.sharedPost.imageUrl}
+                  src={sharedPostImageUrl}
                   className="mt-3 w-full rounded-lg max-h-80 object-cover"
                   alt="Shared post image"
                 />

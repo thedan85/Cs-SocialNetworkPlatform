@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.FileProviders;
 using SocialNetwork.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -167,19 +168,9 @@ builder.Services.AddScoped<INotificationsService, NotificationsService>();
 builder.Services.AddScoped<IStoriesService, StoriesService>();
 builder.Services.AddScoped<IHashtagsService, HashtagsService>();
 
-// Register Azure Blob Storage only if connection string is configured
-var azureBlobOptions = builder.Configuration.GetSection(AzureBlobStorageOptions.SectionName).Get<AzureBlobStorageOptions>();
-if (azureBlobOptions?.ConnectionString != null && !string.IsNullOrWhiteSpace(azureBlobOptions.ConnectionString))
-{
-    builder.Services.Configure<AzureBlobStorageOptions>(
-        builder.Configuration.GetSection(AzureBlobStorageOptions.SectionName));
-    builder.Services.AddScoped<IFileStorageService, AzureBlobStorageService>();
-}
-else
-{
-    // Use a no-op implementation for development without Azure configured
-    builder.Services.AddScoped<IFileStorageService, NoOpFileStorageService>();
-}
+builder.Services.Configure<LocalFileStorageOptions>(
+    builder.Configuration.GetSection(LocalFileStorageOptions.SectionName));
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
 var app = builder.Build();
 
@@ -209,6 +200,12 @@ app.UseSwaggerUI(options =>
 });
 
 app.UseHttpsRedirection();
+var webRootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+Directory.CreateDirectory(webRootPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(webRootPath)
+});
 app.UseCors(ReactCorsPolicy);
 
 app.UseAuthentication();

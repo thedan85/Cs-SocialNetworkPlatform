@@ -2,6 +2,7 @@ import { ChangeEvent, FormEvent, useEffect, useId, useRef, useState } from 'reac
 import type { Story } from '../types';
 import { createStory, getStories } from '../services/stories';
 import { uploadImage } from '../services/uploads';
+import { resolveImageUrl } from '../utils/resolveImageUrl';
 
 const Stories = () => {
   const [stories, setStories] = useState<Story[]>([]);
@@ -182,23 +183,26 @@ const Stories = () => {
       )}
 
       <div className="space-y-3">
-        {stories.map((story) => (
-          <div key={story.storyId} className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-xl p-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-slate-900/60 dark:border-slate-800/60">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {buildDisplayName(story.firstName, story.lastName, story.userName, story.userId)}
+        {stories.map((story) => {
+          const storyImageUrl = resolveImageUrl(story.imageUrl);
+          return (
+            <div key={story.storyId} className="rounded-2xl border border-white/60 bg-white/70 backdrop-blur-xl p-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)] dark:bg-slate-900/60 dark:border-slate-800/60">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  {buildDisplayName(story.firstName, story.lastName, story.userName, story.userId)}
+                </p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">{new Date(story.createdAt).toLocaleString()}</p>
+              </div>
+              <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">{story.content}</p>
+              {storyImageUrl && (
+                <img src={storyImageUrl} alt="Story" className="mt-3 w-full rounded-lg object-cover" />
+              )}
+              <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+                Expires: {new Date(story.expiresAt).toLocaleString()}
               </p>
-              <p className="text-xs text-slate-400 dark:text-slate-500">{new Date(story.createdAt).toLocaleString()}</p>
             </div>
-            <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">{story.content}</p>
-            {story.imageUrl && (
-              <img src={story.imageUrl} alt="Story" className="mt-3 w-full rounded-lg object-cover" />
-            )}
-            <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-              Expires: {new Date(story.expiresAt).toLocaleString()}
-            </p>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

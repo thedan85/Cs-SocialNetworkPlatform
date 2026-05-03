@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using SocialNetwork.Service;
 using Xunit;
@@ -47,66 +50,42 @@ public class FileStorageServiceTests
     }
 
     [Fact]
-    public void AzureBlobStorageService_ShouldThrow_WhenConnectionStringMissing()
+    public async Task LocalFileStorageService_UploadAsync_ShouldPersistFileAndReturnRelativePath()
     {
-        var options = Options.Create(new AzureBlobStorageOptions
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"sn-uploads-{Guid.NewGuid():N}");
+        var webRootPath = Path.Combine(tempRoot, "wwwroot");
+        Directory.CreateDirectory(webRootPath);
+
+        try
         {
-            ConnectionString = "",
-            ContainerName = "container"
-        });
+            var env = new TestWebHostEnvironment(tempRoot, webRootPath);
+            var options = Options.Create(new LocalFileStorageOptions
+            {
+                UploadsPath = "uploads/images"
+            });
+            var service = new LocalFileStorageService(env, options);
 
-        Assert.Throws<InvalidOperationException>(() => new AzureBlobStorageService(options));
-    }
+            using var stream = new MemoryStream(new byte[] { 1, 2, 3 });
+            var relativePath = await service.UploadAsync(stream, "avatar.png", "image/png");
 
-    [Fact]
-    public void AzureBlobStorageService_ShouldThrow_WhenContainerNameMissing()
-    {
-        var options = Options.Create(new AzureBlobStorageOptions
+            Assert.StartsWith("/uploads/images/", relativePath);
+
+            var fullPath = Path.Combine(
+                webRootPath,
+                relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            Assert.True(File.Exists(fullPath));
+
+            var deleted = await service.DeleteAsync(relativePath);
+            Assert.True(deleted);
+            Assert.False(File.Exists(fullPath));
+        }
+        finally
         {
-            ConnectionString = "UseDevelopmentStorage=true",
-            ContainerName = ""
-        });
-
-        Assert.Throws<InvalidOperationException>(() => new AzureBlobStorageService(options));
-    }
-
-    [Fact]
-    public async Task AzureBlobStorageService_UploadAsync_ShouldThrow_WhenStreamNull()
-    {
-        var service = CreateAzureService();
-
-        await Assert.ThrowsAsync<ArgumentNullException>(() =>
-            service.UploadAsync(null!, "file.txt", "text/plain"));
-    }
-
-    [Fact]
-    public async Task AzureBlobStorageService_UploadAsync_ShouldThrow_WhenFileNameMissing()
-    {
-        var service = CreateAzureService();
-        using var stream = new MemoryStream(new byte[] { 1, 2, 3 });
-
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            service.UploadAsync(stream, "", "text/plain"));
-    }
-
-    [Fact]
-    public async Task AzureBlobStorageService_DeleteAsync_ShouldReturnFalse_WhenBlobNameMissing()
-    {
-        var service = CreateAzureService();
-
-        var result = await service.DeleteAsync("");
-
-        Assert.False(result);
-    }
-
-    [Fact]
-    public void AzureBlobStorageOptions_ShouldHaveDefaults()
-    {
-        var options = new AzureBlobStorageOptions();
-
-        Assert.Equal(string.Empty, options.ConnectionString);
-        Assert.Equal(string.Empty, options.ContainerName);
-        Assert.Equal("AzureBlobStorage", AzureBlobStorageOptions.SectionName);
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
     }
 
     [Fact]
@@ -118,14 +97,23 @@ public class FileStorageServiceTests
         Assert.False(result.IsCreated);
     }
 
-    private static AzureBlobStorageService CreateAzureService()
+    private sealed class TestWebHostEnvironment : IWebHostEnvironment
     {
-        var options = Options.Create(new AzureBlobStorageOptions
+        public TestWebHostEnvironment(string contentRootPath, string webRootPath)
         {
-            ConnectionString = "UseDevelopmentStorage=true",
-            ContainerName = "test"
-        });
+            ContentRootPath = contentRootPath;
+            WebRootPath = webRootPath;
+            EnvironmentName = Environments.Development;
+            ApplicationName = "SocialNetwork.Tests";
+            ContentRootFileProvider = new PhysicalFileProvider(ContentRootPath);
+            WebRootFileProvider = new PhysicalFileProvider(WebRootPath);
+        }
 
-        return new AzureBlobStorageService(options);
+        public string ApplicationName { get; set; }
+        public IFileProvider WebRootFileProvider { get; set; }
+        public string WebRootPath { get; set; }
+        public string EnvironmentName { get; set; }
+        public string ContentRootPath { get; set; }
+        public IFileProvider ContentRootFileProvider { get; set; }
     }
 }

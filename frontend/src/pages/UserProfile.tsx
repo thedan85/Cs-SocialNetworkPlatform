@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserById, getUserPosts } from '../services/users';
+import { resolveImageUrl } from '../utils/resolveImageUrl';
 import type { Post, User } from '../types';
 import PostCard from '../components/specific/PostCard';
 import PostSkeleton from '../components/common/PostSkeleton';
@@ -78,7 +79,8 @@ const UserProfile = () => {
   }
 
   const displayName = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim() || profile.userName;
-  const avatar = profile.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}`;
+  const avatar = resolveImageUrl(profile.profilePicture)
+    || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}`;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">

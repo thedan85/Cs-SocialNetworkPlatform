@@ -6,6 +6,7 @@ import { User, LogOut } from 'lucide-react';
 import { getUserPosts, updateUser as updateUserRequest } from '../services/users';
 import { getFriends, getPendingRequests } from '../services/friends';
 import { uploadImage } from '../services/uploads';
+import { resolveImageUrl } from '../utils/resolveImageUrl';
 import type { Post } from '../types';
 import PostCard from '../components/specific/PostCard';
 import PostSkeleton from '../components/common/PostSkeleton';
@@ -42,6 +43,7 @@ const Profile = () => {
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [postsError, setPostsError] = useState<string | null>(null);
+  const previewSrc = preview ? resolveImageUrl(preview) : null;
 
   useEffect(() => {
     return () => {
@@ -171,8 +173,8 @@ const Profile = () => {
         {/* Profile Header */}
         <div className="flex items-center gap-6 mb-8 pb-8 border-b border-white/60 dark:border-slate-800/60">
           <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-500 via-cyan-500 to-amber-400 flex items-center justify-center flex-shrink-0 shadow-lg shadow-cyan-500/25">
-            {preview ? (
-              <img src={preview} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+            {previewSrc ? (
+              <img src={previewSrc} alt="Avatar" className="w-full h-full rounded-full object-cover" />
             ) : (
               <User className="w-12 h-12 text-white" />
             )}
@@ -208,8 +210,8 @@ const Profile = () => {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="flex flex-col items-center gap-2 mb-6">
                 <div className="w-24 h-24 rounded-full bg-white/80 overflow-hidden border-2 border-cyan-300/70 shadow-lg shadow-cyan-500/20 dark:bg-slate-900/60 dark:border-cyan-500/40">
-                  {preview ? (
-                    <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                  {previewSrc ? (
+                    <img src={previewSrc} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
                     <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-500">No Avatar</div>
                   )}
