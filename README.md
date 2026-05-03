@@ -6,8 +6,6 @@ InteractHub is a full-stack social network application built with a React + Type
 
 - Frontend: React 18, TypeScript, Vite, Tailwind CSS, React Router, React Hook Form, Axios, Lucide, SignalR client
 - Backend: .NET 10, ASP.NET Core, EF Core, ASP.NET Identity, JWT authentication, SignalR, Swagger, MySQL with Pomelo, Dapper
-- Storage: Azure Blob Storage when configured, with a no-op local development fallback
-
 ## Repository Layout
 
 - `backend/SocialNetwork` - API project, controllers, services, repositories, migrations, hubs, and configuration
@@ -39,18 +37,7 @@ npm run install-all
 The backend reads standard appsettings values and also loads overrides from a `.env.local` file found in the backend app directory or any parent directory. A typical local setup looks like this:
 
 ```env
-ConnectionStrings__DefaultConnection=Server=localhost;Database=socialnetwork;User=root;
-Jwt__SecretKey=replace-with-a-long-secret-key
-Jwt__Issuer=InteractHub
-Jwt__Audience=InteractHubClient
-Jwt__AccessTokenMinutes=60
-```
-
-If you want real blob storage for uploads, also add:
-
-```env
-AzureBlobStorage__ConnectionString=...
-AzureBlobStorage__ContainerName=interacthub-uploads
+ConnectionStrings__DefaultConnection=Server=localhost;Database=socialnetwork;User=root;Password=
 ```
 
 4. Create the database and apply migrations:
@@ -98,6 +85,7 @@ On a fresh database, the backend migrates the schema and seeds the `User` and `A
 - CORS is configured for `http://localhost:3000` and `http://localhost:5173`.
 - The frontend stores the auth token, user, and roles in `localStorage`.
 - Swagger is enabled on the backend for local API exploration.
+- Uploaded images are stored on local disk in `backend/SocialNetwork/wwwroot/uploads/images` by default, and the API returns a public URL under `/uploads/images/...`.
 
 ## API Endpoints
 
@@ -130,7 +118,6 @@ Most endpoints require authentication. Admin-only endpoints are marked as such.
 | Posts | POST | `/api/posts/{postId}/likes` | Like a post |
 | Posts | DELETE | `/api/posts/{postId}/likes` | Unlike a post |
 | Posts | POST | `/api/posts/{postId}/shares` | Share a post |
-| Posts | DELETE | `/api/posts/{postId}/shares` | Unshare a post |
 | Posts | POST | `/api/posts/{postId}/report` | Report a post |
 | Friends | POST | `/api/friends/requests` | Send a friend request |
 | Friends | PUT | `/api/friends/requests/{friendshipId}/accept` | Accept a request |
