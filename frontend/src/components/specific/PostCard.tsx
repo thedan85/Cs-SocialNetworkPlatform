@@ -1,20 +1,22 @@
 import { Comment, Post } from '../../types';
-import { Flag, Heart, MessageCircle, Share2, Send, Trash2 } from 'lucide-react';
-import { FormEvent, useEffect, useState } from 'react';
+import { Flag, Heart, MessageCircle, Share2, Send, Trash2, Edit, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { resolveImageUrl } from '../../utils/resolveImageUrl';
 import {
   createComment,
   deleteComment,
+  deletePost,
   getPostComments,
   getPostById,
   likePost,
   reportPost,
   sharePost,
   unlikePost,
-  unsharePost
+  updatePost
 } from '../../services/posts';
+import { uploadImage } from '../../services/uploads';
 
 interface PostCardProps {
   post: Post;
@@ -26,8 +28,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
   const [isLiked, setIsLiked] = useState(Boolean(post.isLiked));
   const [likesCount, setLikesCount] = useState(post.likeCount);
   const [likeSubmitting, setLikeSubmitting] = useState(false);
-  const [isShared, setIsShared] = useState(Boolean(post.isShared));
-  const [shareCount, setShareCount] = useState(post.shareCount ?? 0);
   const [shareSubmitting, setShareSubmitting] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareDraft, setShareDraft] = useState('');
@@ -46,6 +46,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
   const [reportSuccess, setReportSuccess] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+  const [editImageUrl, setEditImageUrl] = useState(post.imageUrl ?? null);
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(post.imageUrl ?? null);
+  const [editImagePreviewIsLocal, setEditImagePreviewIsLocal] = useState(false);
+  const editImageInputRef = useRef<HTMLInputElement | null>(null);
+  const [editPrivacy, setEditPrivacy] = useState<'Public' | 'Friends' | 'Private'>(post.privacy as 'Public' | 'Friends' | 'Private' || 'Public');
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const buildDisplayName = (
     firstName?: string | null,
@@ -63,6 +75,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
   const authorLabel = buildDisplayName(post.firstName, post.lastName, post.userName, post.userId);
   const profilePath = user?.userId === post.userId ? '/profile' : `/users/${post.userId}`;
   const canReport = user?.userId !== post.userId;
+  const canEdit = user?.userId === post.userId;
+  const isEdited = new Date(post.updatedAt).getTime() !== new Date(post.createdAt).getTime();
   const hasSharedPost = Boolean(post.sharedPostId);
   const postImageUrl = resolveImageUrl(post.imageUrl);
   const sharedPostImageUrl = resolveImageUrl(post.sharedPost?.imageUrl);
@@ -70,13 +84,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
   useEffect(() => {
     setIsLiked(Boolean(post.isLiked));
     setLikesCount(post.likeCount);
-    setIsShared(Boolean(post.isShared));
-    setShareCount(post.shareCount ?? 0);
     setShareOpen(false);
     setShareDraft('');
     setSharePrivacy('Public');
     setShareError(null);
-  }, [post.postId, post.isLiked, post.likeCount, post.isShared, post.shareCount]);
+  }, [post.postId, post.isLiked, post.likeCount]);
 
   const handleLike = async () => {
     if (likeSubmitting) return;
@@ -98,28 +110,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
     }
   };
 
-  const refreshShareState = async () => {
-    const updated = await getPostById(post.postId);
-    setIsShared(Boolean(updated.isShared));
-    setShareCount(updated.shareCount ?? 0);
-  };
-
-  const handleShareToggle = async () => {
-    if (shareSubmitting) return;
-
-    if (isShared) {
-      setShareSubmitting(true);
-      try {
-        await unsharePost(post.postId);
-        await refreshShareState();
-      } catch (err) {
-        alert('Unable to unshare this post.');
-      } finally {
-        setShareSubmitting(false);
-      }
-      return;
-    }
-
+  const handleShareToggle = () => {
     setShareError(null);
     setShareOpen((current) => !current);
   };
@@ -137,7 +128,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
         content: content.length > 0 ? content : null,
         privacy: sharePrivacy
       });
-      await refreshShareState();
       setShareDraft('');
       setShareOpen(false);
     } catch (err: any) {
@@ -193,6 +183,80 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
     setCommentsOpen((current) => !current);
   };
 
+  const handleEditSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (editSubmitting) return;
+
+    setEditSubmitting(true);
+    setEditError(null);
+    try {
+      let imageUrl = editImageUrl;
+      
+      if (editImageFile) {
+        const uploaded = await uploadImage(editImageFile);
+        imageUrl = uploaded.url;
+      }
+
+      await updatePost(post.postId, {
+        content: editContent.trim(),
+        imageUrl: imageUrl,
+        privacy: editPrivacy
+      });
+      setEditOpen(false);
+      // Reload post to get updated data
+      const updated = await getPostById(post.postId);
+      Object.assign(post, updated);
+    } catch (err: any) {
+      setEditError(err?.message || 'Unable to update post.');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleEditImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (editImagePreviewIsLocal && editImagePreview) {
+      URL.revokeObjectURL(editImagePreview);
+    }
+
+    setEditImageFile(file);
+    setEditImagePreview(URL.createObjectURL(file));
+    setEditImagePreviewIsLocal(true);
+  };
+
+  const handleRemoveEditImage = () => {
+    if (editImagePreviewIsLocal && editImagePreview) {
+      URL.revokeObjectURL(editImagePreview);
+    }
+
+    setEditImageFile(null);
+    setEditImageUrl(null);
+    setEditImagePreview(null);
+    setEditImagePreviewIsLocal(false);
+
+    if (editImageInputRef.current) {
+      editImageInputRef.current.value = '';
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await deletePost(post.postId);
+      // Post will be removed by parent component or page refresh
+      window.location.reload();
+    } catch (err: any) {
+      alert(err?.message || 'Unable to delete post.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   useEffect(() => {
     if (commentsOpen && !commentsLoaded && !commentsLoading) {
       loadComments();
@@ -243,6 +307,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
             </p>
             <span className="text-xs text-slate-400 dark:text-slate-500">
               {new Date(post.createdAt).toLocaleString()}
+              {isEdited && (
+                <span> • Edited: {new Date(post.updatedAt).toLocaleString()}</span>
+              )}
             </span>
           </div>
         </Link>
@@ -362,14 +429,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
 
         <button
           onClick={handleShareToggle}
-          disabled={shareSubmitting}
-          aria-pressed={isShared}
-          className={`flex items-center gap-1 transition-colors disabled:opacity-60 ${
-            isShared ? 'text-emerald-600 font-semibold' : 'hover:text-emerald-600'
-          }`}
+          className="flex items-center gap-1 text-slate-500 hover:text-emerald-600 transition-colors dark:text-slate-400 dark:hover:text-emerald-300"
         >
-          <Share2 className={`w-4 h-4 ${isShared ? 'fill-current' : ''}`} />
-          {shareCount}
+          <Share2 className="w-4 h-4" />
+          Share
         </button>
 
         {canReport && (
@@ -382,9 +445,30 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
             Report
           </button>
         )}
+
+        {canEdit && (
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setEditOpen(true)}
+              className="flex items-center gap-1 text-xs text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300"
+              type="button"
+            >
+              <Edit className="w-4 h-4" />
+              Edit
+            </button>
+            <button
+              onClick={() => setDeleteConfirm(true)}
+              className="flex items-center gap-1 text-xs text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300"
+              type="button"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+          </div>
+        )}
       </div>
 
-      {shareOpen && !isShared && (
+      {shareOpen && (
         <div className="mt-4 rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
           <form onSubmit={handleShareSubmit} className="space-y-3">
             <div>
@@ -569,6 +653,144 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {editOpen && (
+        <div className="mt-4 rounded-2xl border border-cyan-200/70 bg-cyan-50/70 p-4 dark:border-cyan-500/30 dark:bg-cyan-500/10">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-cyan-700 dark:text-cyan-300">Edit Post</h3>
+            <button
+              onClick={() => setEditOpen(false)}
+              className="text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300"
+              type="button"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <form onSubmit={handleEditSubmit} className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
+                Content
+              </label>
+              <textarea
+                value={editContent}
+                onChange={(event) => setEditContent(event.target.value)}
+                placeholder="What's on your mind?"
+                rows={4}
+                className="mt-1 w-full rounded-xl border border-cyan-200/70 bg-white/80 px-3 py-2 text-sm text-slate-700 outline-none focus:border-cyan-300 focus:ring-2 focus:ring-cyan-200/70 dark:border-cyan-500/30 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:border-cyan-400/50 dark:focus:ring-cyan-500/20"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
+                Image
+              </label>
+              <div className="mt-1 space-y-2">
+                <input
+                  ref={editImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleEditImageChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => editImageInputRef.current?.click()}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-200/70 bg-white/80 px-3 py-2 text-xs font-semibold text-cyan-600 hover:bg-cyan-50/50 dark:border-cyan-500/30 dark:bg-slate-900/70 dark:text-cyan-400 dark:hover:bg-slate-800/70"
+                >
+                  <Upload className="w-4 h-4" />
+                  Choose Image
+                </button>
+                
+                {editImagePreview && (
+                  <div className="relative rounded-lg overflow-hidden border border-cyan-200/70 dark:border-cyan-500/30">
+                    <img
+                      src={editImagePreview}
+                      alt="Edit preview"
+                      className="w-full max-h-48 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveEditImage}
+                      className="absolute top-2 right-2 rounded-full bg-rose-600 p-1.5 text-white hover:bg-rose-700 shadow-lg"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
+                Privacy
+              </label>
+              <select
+                value={editPrivacy}
+                onChange={(event) => setEditPrivacy(event.target.value as 'Public' | 'Friends' | 'Private')}
+                className="mt-1 w-full rounded-xl border border-cyan-200/70 bg-white/80 px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-200/70 dark:border-cyan-500/30 dark:bg-slate-900/70 dark:text-slate-100 dark:focus:ring-cyan-500/20"
+              >
+                <option value="Public">Public</option>
+                <option value="Friends">Friends</option>
+                <option value="Private">Private</option>
+              </select>
+            </div>
+
+            {editError && (
+              <div className="rounded-xl border border-rose-200/70 bg-white/80 px-3 py-2 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-slate-900/60 dark:text-rose-200">
+                {editError}
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="submit"
+                disabled={editSubmitting}
+                className="rounded-xl bg-cyan-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-cyan-700 disabled:bg-cyan-300"
+              >
+                {editSubmitting ? 'Updating...' : 'Update post'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditOpen(false)}
+                className="rounded-xl border border-white/70 bg-white/80 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm shadow-slate-200/40 transition-colors hover:bg-white dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-900"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {deleteConfirm && (
+        <div className="mt-4 rounded-2xl border border-rose-200/70 bg-rose-50/70 p-4 dark:border-rose-500/30 dark:bg-rose-500/10">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-rose-700 dark:text-rose-300">Delete Post</h3>
+            <button
+              onClick={() => setDeleteConfirm(false)}
+              className="text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300"
+              type="button"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="mb-4 text-sm text-rose-700 dark:text-rose-200">
+            Are you sure you want to delete this post? This action cannot be undone.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleDeletePost}
+              disabled={deleting}
+              className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rose-700 disabled:bg-rose-300"
+            >
+              {deleting ? 'Deleting...' : 'Delete permanently'}
+            </button>
+            <button
+              onClick={() => setDeleteConfirm(false)}
+              className="rounded-xl border border-white/70 bg-white/80 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm shadow-slate-200/40 transition-colors hover:bg-white dark:border-slate-800/70 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-900"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
