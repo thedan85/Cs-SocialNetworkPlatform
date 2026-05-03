@@ -224,12 +224,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
     }
   };
 
+  const authorAvatarUrl = post.profilePicture 
+    ? resolveImageUrl(post.profilePicture)
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(authorLabel)}`;
+
   return (
     <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-[0_16px_40px_rgba(15,23,42,0.08)] border border-white/60 p-5 transition-all hover:-translate-y-0.5 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)] dark:bg-slate-900/60 dark:border-slate-800/60">
       <div className="flex items-center gap-3 mb-3">
         <Link to={profilePath} className="flex items-center gap-3 group">
           <img
-            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(authorLabel)}`}
+            src={authorAvatarUrl}
             className="w-10 h-10 rounded-full object-cover ring-2 ring-transparent transition group-hover:ring-cyan-300/60"
             alt={authorLabel}
           />
@@ -280,18 +284,26 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
                 }
                 className="flex items-center gap-3"
               >
-                <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    buildDisplayName(
-                      post.sharedPost.firstName,
-                      post.sharedPost.lastName,
-                      post.sharedPost.userName,
-                      post.sharedPost.userId
-                    )
-                  )}`}
-                  className="h-9 w-9 rounded-full object-cover"
-                  alt="Shared author"
-                />
+                {post.sharedPost.profilePicture ? (
+                  <img
+                    src={resolveImageUrl(post.sharedPost.profilePicture)}
+                    className="h-9 w-9 rounded-full object-cover"
+                    alt="Shared author"
+                  />
+                ) : (
+                  <img
+                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      buildDisplayName(
+                        post.sharedPost.firstName,
+                        post.sharedPost.lastName,
+                        post.sharedPost.userName,
+                        post.sharedPost.userId
+                      )
+                    )}`}
+                    className="h-9 w-9 rounded-full object-cover"
+                    alt="Shared author"
+                  />
+                )}
                 <div>
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {buildDisplayName(

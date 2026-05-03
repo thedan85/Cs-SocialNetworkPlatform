@@ -42,6 +42,7 @@ public class PostResponse
     public string? UserName { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
+    public string? ProfilePicture { get; set; }
     public string Content { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
     public string Privacy { get; set; } = string.Empty;
@@ -62,6 +63,7 @@ public class SharedPostPreview
     public string? UserName { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
+    public string? ProfilePicture { get; set; }
     public string Content { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
     public string Privacy { get; set; } = string.Empty;

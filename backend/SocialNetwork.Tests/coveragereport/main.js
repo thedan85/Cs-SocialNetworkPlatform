@@ -290,12 +290,12 @@ var assemblies = [
   {
     "name": "SocialNetwork",
     "classes": [
-      { "name": "SocialNetwork.Service.AzureBlobStorageOptions", "rp": "SocialNetwork_AzureBlobStorageOptions.html", "cl": 2, "ucl": 0, "cal": 2, "tl": 9, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Service.AzureBlobStorageService", "rp": "SocialNetwork_AzureBlobStorageService.html", "cl": 25, "ucl": 22, "cal": 47, "tl": 85, "cb": 8, "tb": 14, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
-      { "name": "SocialNetwork.Service.FriendsService", "rp": "SocialNetwork_FriendsService.html", "cl": 174, "ucl": 14, "cal": 188, "tl": 294, "cb": 40, "tb": 48, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.FriendsService", "rp": "SocialNetwork_FriendsService.html", "cl": 174, "ucl": 70, "cal": 244, "tl": 381, "cb": 40, "tb": 70, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "SocialNetwork.Service.HashtagsService", "rp": "SocialNetwork_HashtagsService.html", "cl": 38, "ucl": 0, "cal": 38, "tl": 67, "cb": 2, "tb": 2, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "SocialNetwork.Service.JwtTokenService", "rp": "SocialNetwork_JwtTokenService.html", "cl": 84, "ucl": 3, "cal": 87, "tl": 130, "cb": 11, "tb": 14, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "SocialNetwork.Service.LikePostResult", "rp": "SocialNetwork_LikePostResult.html", "cl": 2, "ucl": 0, "cal": 2, "tl": 9, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.LocalFileStorageOptions", "rp": "SocialNetwork_LocalFileStorageOptions.html", "cl": 1, "ucl": 0, "cal": 1, "tl": 8, "cb": 0, "tb": 0, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
+      { "name": "SocialNetwork.Service.LocalFileStorageService", "rp": "SocialNetwork_LocalFileStorageService.html", "cl": 58, "ucl": 18, "cal": 76, "tl": 124, "cb": 17, "tb": 28, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "SocialNetwork.Service.NoOpFileStorageService", "rp": "SocialNetwork_NoOpFileStorageService.html", "cl": 13, "ucl": 0, "cal": 13, "tl": 35, "cb": 4, "tb": 4, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "SocialNetwork.Service.NotificationsService", "rp": "SocialNetwork_NotificationsService.html", "cl": 81, "ucl": 22, "cal": 103, "tl": 180, "cb": 21, "tb": 30, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
       { "name": "SocialNetwork.Service.PostsService", "rp": "SocialNetwork_PostsService.html", "cl": 270, "ucl": 378, "cal": 648, "tl": 986, "cb": 78, "tb": 224, "cm": 0, "fcm": 0, "tm": 0, "lch": [], "bch": [], "mch": [], "mfch": [], "hc": [], "metrics": { } },
@@ -324,6 +324,12 @@ var riskHotspots = [
       { "value": 22, "exceeded": true },
     ]},
   {
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.FriendsService", "reportPath": "SocialNetwork_FriendsService.html", "methodName": "RemoveFriendAsync()", "methodShortName": "RemoveFriendAsync()", "fileIndex": 0, "line": 297,
+    "metrics": [
+      { "value": 210, "exceeded": true },
+      { "value": 14, "exceeded": false },
+    ]},
+  {
     "assembly": "SocialNetwork", "class": "SocialNetwork.Service.PostsService", "reportPath": "SocialNetwork_PostsService.html", "methodName": "UnsharePostAsync()", "methodShortName": "UnsharePostAsync()", "fileIndex": 0, "line": 600,
     "metrics": [
       { "value": 144, "exceeded": true },
@@ -340,6 +346,12 @@ var riskHotspots = [
     "metrics": [
       { "value": 110, "exceeded": true },
       { "value": 10, "exceeded": false },
+    ]},
+  {
+    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.FriendsService", "reportPath": "SocialNetwork_FriendsService.html", "methodName": "GetRelationshipAsync()", "methodShortName": "GetRelationshipAsync()", "fileIndex": 0, "line": 249,
+    "metrics": [
+      { "value": 72, "exceeded": true },
+      { "value": 8, "exceeded": false },
     ]},
   {
     "assembly": "SocialNetwork", "class": "SocialNetwork.Service.PostsService", "reportPath": "SocialNetwork_PostsService.html", "methodName": "BuildDisplayName(SocialNetwork.Model.User)", "methodShortName": "BuildDisplayName(...)", "fileIndex": 0, "line": 886,
@@ -375,12 +387,6 @@ var riskHotspots = [
     "assembly": "SocialNetwork", "class": "SocialNetwork.Service.PostsService", "reportPath": "SocialNetwork_PostsService.html", "methodName": "CreateCommentAsync()", "methodShortName": "CreateCommentAsync()", "fileIndex": 0, "line": 335,
     "metrics": [
       { "value": 40, "exceeded": true },
-      { "value": 8, "exceeded": false },
-    ]},
-  {
-    "assembly": "SocialNetwork", "class": "SocialNetwork.Service.AzureBlobStorageService", "reportPath": "SocialNetwork_AzureBlobStorageService.html", "methodName": "UploadAsync()", "methodShortName": "UploadAsync()", "fileIndex": 0, "line": 36,
-    "metrics": [
-      { "value": 33, "exceeded": true },
       { "value": 8, "exceeded": false },
     ]},
   {

@@ -44,6 +44,7 @@ export interface Post {
   userName?: string | null;
   firstName?: string | null;
   lastName?: string | null;
+  profilePicture?: string | null;
   content: string;
   imageUrl?: string | null;
   privacy?: 'Public' | 'Friends' | 'Private' | string;
@@ -63,6 +64,7 @@ export interface SharedPostPreview {
   userName?: string | null;
   firstName?: string | null;
   lastName?: string | null;
+  profilePicture?: string | null;
   content: string;
   imageUrl?: string | null;
   privacy?: 'Public' | 'Friends' | 'Private' | string;
