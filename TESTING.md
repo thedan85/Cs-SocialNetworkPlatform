@@ -8,6 +8,8 @@
 - Generate coverage (coverlet collector):
   - `dotnet test backend/SocialNetwork.Tests/SocialNetwork.Tests.csproj --collect:"XPlat Code Coverage"`
   - Coverage output is written under `backend/SocialNetwork.Tests/TestResults/` (look for `coverage.cobertura.xml`).
+- Generate a service-only HTML coverage report (ReportGenerator):
+  - `reportgenerator -reports:"backend/SocialNetwork.Tests/TestResults/**/coverage.cobertura.xml" -targetdir:"backend/SocialNetwork.Tests/coveragereport" -reporttypes:Html -classfilters:+SocialNetwork.Service.*`
 
 ## Integration Tests
 
