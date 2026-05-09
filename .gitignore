@@ -3,6 +3,8 @@ bin/
 obj/
 **/bin/
 **/obj/
+dist/
+**/dist/
 
 # Visual Studio / Rider / user-specific files
 .vs/
