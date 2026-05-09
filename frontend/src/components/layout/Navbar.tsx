@@ -20,7 +20,8 @@ const Navbar: React.FC = () => {
   const [userResults, setUserResults] = useState<UserType[]>([]);
   const [hashtagResults, setHashtagResults] = useState<HashtagSearchResult[]>([]);
   const [history, setHistory] = useState<string[]>([]);
-  const searchRef = useRef<HTMLDivElement | null>(null);
+  const desktopSearchRef = useRef<HTMLDivElement | null>(null);
+  const mobileSearchRef = useRef<HTMLDivElement | null>(null);
   const { logout, isAdmin } = useAuth();
 
   useEffect(() => {
@@ -62,11 +63,10 @@ const Navbar: React.FC = () => {
     }
 
     const handleClick = (event: MouseEvent) => {
-      if (!searchRef.current) {
-        return;
-      }
-
-      if (!searchRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const clickedDesktop = desktopSearchRef.current?.contains(target);
+      const clickedMobile = mobileSearchRef.current?.contains(target);
+      if (!clickedDesktop && !clickedMobile) {
         setSearchOpen(false);
       }
     };
@@ -167,6 +167,8 @@ const Navbar: React.FC = () => {
 
   const activeClass = "flex items-center gap-2 text-teal-700 font-semibold bg-white/80 border border-teal-100 px-3 py-2 rounded-full shadow-sm shadow-teal-500/10 dark:text-teal-200 dark:bg-slate-900/70 dark:border-teal-500/30";
   const inactiveClass = "flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-white/70 px-3 py-2 rounded-full transition-all dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/70";
+  const mobileActiveClass = "flex w-full items-center gap-3 rounded-2xl border border-teal-100 bg-white/90 px-4 py-3 text-teal-700 font-semibold shadow-sm shadow-teal-500/10 dark:border-teal-500/30 dark:bg-slate-900/70 dark:text-teal-200";
+  const mobileInactiveClass = "flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-slate-700 transition-all hover:bg-white/70 dark:text-slate-200 dark:hover:bg-slate-800/70";
 
   return (
     <nav className="bg-white/70 backdrop-blur-xl border-b border-white/60 shadow-[0_8px_30px_rgba(15,23,42,0.08)] sticky top-0 z-50 dark:bg-slate-950/70 dark:border-slate-800/70 dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
@@ -183,9 +185,9 @@ const Navbar: React.FC = () => {
           </Link>
 
           {/* Desktop Search Bar (Hidden on Mobile) */}
-          <div className="hidden md:flex flex-1 justify-center px-6">
+          <div className="hidden 2xl:flex flex-1 justify-center px-6">
             <div
-              ref={searchRef}
+              ref={desktopSearchRef}
               className="relative w-full min-w-[18rem] max-w-lg text-slate-400 focus-within:text-cyan-500"
             >
               <Search className="absolute left-3 top-3 w-4 h-4" />
@@ -217,7 +219,7 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden 2xl:flex items-center gap-4">
             {navLinks.map((link) => (
               <NavLink
                 key={link.href}
@@ -248,8 +250,16 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center">
-            <button onClick={() => setIsOpen(!isOpen)} className="text-slate-600 p-2 dark:text-slate-200">
+          <div className="2xl:hidden flex items-center">
+            <button
+              onClick={() => {
+                setIsOpen((current) => !current);
+                setSearchOpen(false);
+              }}
+              className="text-slate-600 p-2 dark:text-slate-200"
+              aria-label={isOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isOpen}
+            >
               {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
@@ -258,14 +268,47 @@ const Navbar: React.FC = () => {
 
       {/* Mobile Menu Overlay */}
       {isOpen && (
-        <div className="md:hidden bg-white/80 backdrop-blur-xl border-t border-white/70 py-4 px-4 space-y-2 animate-in slide-in-from-top duration-300 dark:bg-slate-950/80 dark:border-slate-800/70">
+        <div className="2xl:hidden bg-white/80 backdrop-blur-xl border-t border-white/70 py-4 px-4 space-y-3 animate-in slide-in-from-top duration-300 dark:bg-slate-950/80 dark:border-slate-800/70">
+          <div
+            ref={mobileSearchRef}
+            className="relative text-slate-400 focus-within:text-cyan-500"
+          >
+            <Search className="absolute left-4 top-3.5 w-4 h-4" />
+            <form onSubmit={handleSearchSubmit} className="w-full">
+              <input
+                type="text"
+                placeholder="Search people or hashtags..."
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                onFocus={() => setSearchOpen(true)}
+                className="w-full rounded-2xl bg-white/90 border border-white/70 py-2.5 pl-11 pr-4 text-base text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-cyan-300/70 focus:border-cyan-200 outline-none transition-all dark:bg-slate-900/70 dark:border-slate-700/60 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:ring-cyan-500/40"
+              />
+            </form>
+            {searchOpen && (
+              <div className="mt-2 max-h-[60vh] overflow-y-auto rounded-2xl border border-white/60 bg-white/95 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-slate-800/70 dark:bg-slate-950/90">
+                <SearchResultsPanel
+                  query={searchQuery}
+                  searching={searching}
+                  error={searchError}
+                  users={userResults}
+                  hashtags={hashtagResults}
+                  history={history}
+                  onSelectHistory={handleHistorySelect}
+                  onClearHistory={clearHistory}
+                />
+              </div>
+            )}
+          </div>
           {navLinks.map((link) => (
             <NavLink
               key={link.href}
               to={link.href}
-              onClick={() => setIsOpen(false)}
+              onClick={() => {
+                setIsOpen(false);
+                setSearchOpen(false);
+              }}
               className={({ isActive }) =>
-                isActive ? activeClass : inactiveClass
+                isActive ? mobileActiveClass : mobileInactiveClass
               }
             >
               <link.icon className="w-5 h-5" />
@@ -273,16 +316,23 @@ const Navbar: React.FC = () => {
             </NavLink>
           ))}
           <button
-            onClick={() => { toggleTheme(); }}
-            className="w-full flex items-center gap-2 text-slate-600 px-3 py-2 rounded-lg hover:bg-white/70 font-medium dark:text-slate-200 dark:hover:bg-slate-800/70"
+            onClick={() => {
+              toggleTheme();
+              setSearchOpen(false);
+            }}
+            className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-slate-700 font-medium hover:bg-white/70 dark:text-slate-200 dark:hover:bg-slate-800/70"
             type="button"
           >
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
           </button>
           <button 
-            onClick={() => { logout(); setIsOpen(false); }}
-            className="w-full flex items-center gap-2 text-rose-500 px-3 py-2 rounded-lg hover:bg-rose-50 font-medium dark:text-rose-400 dark:hover:bg-rose-500/10"
+            onClick={() => {
+              logout();
+              setIsOpen(false);
+              setSearchOpen(false);
+            }}
+            className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-rose-500 font-medium hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10"
           >
             <LogOut className="w-5 h-5" />
             <span>Sign Out</span>
@@ -291,7 +341,7 @@ const Navbar: React.FC = () => {
       )}
 
       {/* Dropdown cho Mobile (hiển thị phủ lên khi kích hoạt từ menu mobile) */}
-      <div className="md:hidden">
+      <div className="2xl:hidden">
         <NotificationDropdown
           isOpen={isNotificationsOpen}
           onClose={() => setIsNotificationsOpen(false)}
