@@ -91,6 +91,9 @@ public class ApplicationDbContext : IdentityDbContext<User>
             entity.Property(e => e.ImageUrl)
                 .HasMaxLength(500);
 
+            entity.Property(e => e.ImageUrl)
+                .HasMaxLength(500);
+
             entity.Property(e => e.Privacy)
                 .HasMaxLength(20)
                 .HasDefaultValue(PostPrivacy.Public);

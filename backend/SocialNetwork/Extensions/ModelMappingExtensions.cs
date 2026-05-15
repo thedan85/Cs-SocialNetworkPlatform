@@ -75,7 +75,9 @@ public static class ModelMappingExtensions
             FirstName = comment.User?.FirstName,
             LastName = comment.User?.LastName,
             Content = comment.Content,
+            ImageUrl = comment.ImageUrl,
             LikeCount = comment.LikeCount,
+            IsLiked = false,
             CreatedAt = comment.CreatedAt,
             UpdatedAt = comment.UpdatedAt
         };
@@ -88,6 +90,8 @@ public static class ModelMappingExtensions
             LikeId = like.LikeId,
             UserId = like.UserId,
             PostId = like.PostId,
+            CommentId = like.CommentId,
+            StoryId = like.StoryId,
             CreatedAt = like.CreatedAt
         };
     }

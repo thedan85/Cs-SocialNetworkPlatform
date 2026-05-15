@@ -10,9 +10,11 @@ import {
   deletePost,
   getPostComments,
   getPostById,
+  likeComment,
   likePost,
   reportPost,
   sharePost,
+  unlikeComment,
   unlikePost,
   updatePost
 } from '../../services/posts';
@@ -40,6 +42,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [commentDraft, setCommentDraft] = useState('');
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [commentImageFile, setCommentImageFile] = useState<File | null>(null);
+  const [commentImagePreview, setCommentImagePreview] = useState<string | null>(null);
+  const [commentImagePreviewIsLocal, setCommentImagePreviewIsLocal] = useState(false);
+  const commentImageInputRef = useRef<HTMLInputElement | null>(null);
+  const [commentLikeSubmitting, setCommentLikeSubmitting] = useState<Record<string, boolean>>({});
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [reportDescription, setReportDescription] = useState('');
@@ -243,6 +250,35 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
     }
   };
 
+  const handleCommentImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (commentImagePreviewIsLocal && commentImagePreview) {
+      URL.revokeObjectURL(commentImagePreview);
+    }
+
+    setCommentImageFile(file);
+    setCommentImagePreview(URL.createObjectURL(file));
+    setCommentImagePreviewIsLocal(true);
+  };
+
+  const handleRemoveCommentImage = () => {
+    if (commentImagePreviewIsLocal && commentImagePreview) {
+      URL.revokeObjectURL(commentImagePreview);
+    }
+
+    setCommentImageFile(null);
+    setCommentImagePreview(null);
+    setCommentImagePreviewIsLocal(false);
+
+    if (commentImageInputRef.current) {
+      commentImageInputRef.current.value = '';
+    }
+  };
+
   const handleDeletePost = async () => {
     if (deleting) return;
     setDeleting(true);
@@ -266,16 +302,65 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
   const handleAddComment = async (event: FormEvent) => {
     event.preventDefault();
     const trimmed = commentDraft.trim();
-    if (!trimmed) return;
+    if (!trimmed && !commentImageFile) return;
     setCommentSubmitting(true);
+    setCommentsError(null);
     try {
-      const created = await createComment(post.postId, { content: trimmed });
+      let imageUrl: string | null = null;
+
+      if (commentImageFile) {
+        const uploaded = await uploadImage(commentImageFile);
+        imageUrl = uploaded.url;
+      }
+
+      const created = await createComment(post.postId, {
+        content: trimmed.length > 0 ? trimmed : null,
+        imageUrl
+      });
       setComments((current) => [created, ...current]);
       setCommentDraft('');
+      handleRemoveCommentImage();
     } catch (err: any) {
       setCommentsError(err?.message || 'Unable to add comment.');
     } finally {
       setCommentSubmitting(false);
+    }
+  };
+
+  const handleToggleCommentLike = async (commentId: string) => {
+    if (commentLikeSubmitting[commentId]) return;
+
+    const target = comments.find((comment) => comment.commentId === commentId);
+    if (!target) return;
+
+    const isLiked = Boolean(target.isLiked);
+    setCommentLikeSubmitting((current) => ({ ...current, [commentId]: true }));
+    try {
+      if (isLiked) {
+        await unlikeComment(post.postId, commentId);
+      } else {
+        await likeComment(post.postId, commentId);
+      }
+
+      setComments((current) =>
+        current.map((comment) =>
+          comment.commentId === commentId
+            ? {
+                ...comment,
+                isLiked: !isLiked,
+                likeCount: Math.max(0, comment.likeCount + (isLiked ? -1 : 1))
+              }
+            : comment
+        )
+      );
+    } catch (err: any) {
+      setCommentsError(err?.message || 'Unable to update comment like.');
+    } finally {
+      setCommentLikeSubmitting((current) => {
+        const next = { ...current };
+        delete next[commentId];
+        return next;
+      });
     }
   };
 
@@ -584,21 +669,55 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
 
       {commentsOpen && (
         <div className="mt-4 border-t border-white/60 pt-4 dark:border-slate-800/60">
-          <form onSubmit={handleAddComment} className="flex flex-col gap-3 sm:flex-row">
-            <input
-              value={commentDraft}
-              onChange={(event) => setCommentDraft(event.target.value)}
-              placeholder="Write a comment..."
-              className="flex-1 rounded-xl border border-white/70 bg-white/80 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-300/70 dark:bg-slate-900/70 dark:border-slate-700/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-cyan-500/40"
-            />
-            <button
-              type="submit"
-              disabled={!commentDraft.trim() || commentSubmitting}
-              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 via-cyan-500 to-amber-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 hover:from-teal-600 hover:via-cyan-600 hover:to-amber-500 disabled:from-slate-300 disabled:via-slate-300 disabled:to-slate-300 disabled:text-slate-500 disabled:shadow-none"
-            >
-              <Send className="w-4 h-4" />
-              {commentSubmitting ? 'Posting...' : 'Post'}
-            </button>
+          <form onSubmit={handleAddComment} className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                value={commentDraft}
+                onChange={(event) => setCommentDraft(event.target.value)}
+                placeholder="Write a comment..."
+                className="flex-1 rounded-xl border border-white/70 bg-white/80 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-300/70 dark:bg-slate-900/70 dark:border-slate-700/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-cyan-500/40"
+              />
+              <input
+                ref={commentImageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCommentImageChange}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => commentImageInputRef.current?.click()}
+                className="flex items-center justify-center gap-2 rounded-xl border border-white/70 bg-white/80 px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm shadow-slate-200/40 transition-colors hover:bg-white dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-900"
+              >
+                <ImageIcon className="w-4 h-4" />
+                Add photo
+              </button>
+              <button
+                type="submit"
+                disabled={(!commentDraft.trim() && !commentImageFile) || commentSubmitting}
+                className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 via-cyan-500 to-amber-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 hover:from-teal-600 hover:via-cyan-600 hover:to-amber-500 disabled:from-slate-300 disabled:via-slate-300 disabled:to-slate-300 disabled:text-slate-500 disabled:shadow-none"
+              >
+                <Send className="w-4 h-4" />
+                {commentSubmitting ? 'Posting...' : 'Post'}
+              </button>
+            </div>
+
+            {commentImagePreview && (
+              <div className="relative max-w-md rounded-lg border border-cyan-200/70 bg-white/80 p-2 dark:border-cyan-500/30 dark:bg-slate-900/60">
+                <img
+                  src={commentImagePreview}
+                  alt="Comment preview"
+                  className="max-h-40 w-full rounded-md object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveCommentImage}
+                  className="absolute right-2 top-2 rounded-full bg-rose-600 p-1.5 text-white shadow-lg hover:bg-rose-700"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
           </form>
 
           {commentsLoading && (
@@ -650,6 +769,26 @@ const PostCard: React.FC<PostCardProps> = ({ post, showCommentsByDefault = false
                     )}
                   </div>
                   <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">{comment.content}</p>
+                  {comment.imageUrl && (
+                    <img
+                      src={resolveImageUrl(comment.imageUrl)}
+                      alt="Comment attachment"
+                      className="mt-3 max-h-48 w-full rounded-lg object-cover"
+                    />
+                  )}
+                  <div className="mt-3 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                    <button
+                      onClick={() => handleToggleCommentLike(comment.commentId)}
+                      disabled={commentLikeSubmitting[comment.commentId]}
+                      className={`flex items-center gap-1 transition-colors disabled:opacity-60 ${
+                        comment.isLiked ? 'text-rose-500 font-semibold' : 'hover:text-rose-500'
+                      }`}
+                      type="button"
+                    >
+                      <Heart className={`h-3.5 w-3.5 ${comment.isLiked ? 'fill-current' : ''}`} />
+                      {comment.likeCount}
+                    </button>
+                  </div>
                 </div>
               );
             })}

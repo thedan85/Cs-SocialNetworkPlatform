@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
+import { getUserById } from '../services/users';
 
 interface AuthContextType {
   user: User | null;
@@ -39,6 +40,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setLoading(false);
   }, []);
+
+  useEffect(() => {
+    if (!user?.userId) {
+      return;
+    }
+
+    let isActive = true;
+
+    const syncUser = async () => {
+      try {
+        const freshUser = await getUserById(user.userId);
+        if (!isActive) return;
+
+        setUser((current) => {
+          if (!current) return current;
+          const next = { ...current, ...freshUser };
+          localStorage.setItem('user', JSON.stringify(next));
+          return next;
+        });
+      } catch {
+        // Ignore; auth interceptor handles invalid tokens.
+      }
+    };
+
+    syncUser();
+
+    return () => {
+      isActive = false;
+    };
+  }, [user?.userId]);
 
   const login = (token: string, userData: User, nextRoles: string[], expiresAt?: string | null) => {
     const safeRoles = Array.isArray(nextRoles)

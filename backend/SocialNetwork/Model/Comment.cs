@@ -9,6 +9,8 @@ public class Comment
     public string UserId { get; set; } = string.Empty;
     
     public string Content { get; set; } = string.Empty;
+
+    public string? ImageUrl { get; set; }
     
     public int LikeCount { get; set; } = 0;
     

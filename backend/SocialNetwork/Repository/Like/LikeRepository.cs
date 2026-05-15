@@ -20,6 +20,13 @@ public class LikeRepository : ILikeRepository
             .FirstOrDefaultAsync(like => like.PostId == postId && like.UserId == userId, ct);
     }
 
+    public Task<Like?> GetByCommentAndUserAsync(string commentId, string userId, CancellationToken ct = default)
+    {
+        return _dbContext.Likes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(like => like.CommentId == commentId && like.UserId == userId, ct);
+    }
+
     public async Task<IReadOnlyList<string>> GetLikedPostIdsAsync(
         string userId,
         IReadOnlyCollection<string> postIds,
@@ -37,6 +44,23 @@ public class LikeRepository : ILikeRepository
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<string>> GetLikedCommentIdsAsync(
+        string userId,
+        IReadOnlyCollection<string> commentIds,
+        CancellationToken ct = default)
+    {
+        if (commentIds.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        return await _dbContext.Likes
+            .AsNoTracking()
+            .Where(like => like.UserId == userId && like.CommentId != null && commentIds.Contains(like.CommentId))
+            .Select(like => like.CommentId!)
+            .ToListAsync(ct);
+    }
+
     public async Task AddAsync(Like like, CancellationToken ct = default)
     {
         await _dbContext.Likes.AddAsync(like, ct);
@@ -47,6 +71,15 @@ public class LikeRepository : ILikeRepository
     {
         var affectedRows = await _dbContext.Likes
             .Where(like => like.PostId == postId && like.UserId == userId)
+            .ExecuteDeleteAsync(ct);
+
+        return affectedRows > 0;
+    }
+
+    public async Task<bool> DeleteByCommentAndUserAsync(string commentId, string userId, CancellationToken ct = default)
+    {
+        var affectedRows = await _dbContext.Likes
+            .Where(like => like.CommentId == commentId && like.UserId == userId)
             .ExecuteDeleteAsync(ct);
 
         return affectedRows > 0;

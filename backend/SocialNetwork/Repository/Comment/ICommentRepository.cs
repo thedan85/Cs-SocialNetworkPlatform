@@ -10,7 +10,14 @@ public interface ICommentRepository
         int pageSize,
         CancellationToken ct = default);
 
+    Task<Comment?> GetByPostAndIdAsync(
+        string postId,
+        string commentId,
+        CancellationToken ct = default);
+
     Task AddAsync(Comment comment, CancellationToken ct = default);
+
+    Task<bool> IncrementLikeCountAsync(string commentId, int delta, CancellationToken ct = default);
 
     Task<bool> DeleteAsync(string postId, string commentId, CancellationToken ct = default);
 }

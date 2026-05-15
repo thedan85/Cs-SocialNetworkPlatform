@@ -32,6 +32,7 @@ export const toUser = (authUser: AuthUser): User => {
     email: authUser.email,
     firstName: authUser.firstName ?? null,
     lastName: authUser.lastName ?? null,
+    profilePicture: authUser.profilePicture ?? null,
     bio: authUser.bio ?? null
   };
 };

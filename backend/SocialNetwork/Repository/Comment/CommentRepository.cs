@@ -31,12 +31,33 @@ public class CommentRepository : ICommentRepository
         return comments;
     }
 
+    public Task<Comment?> GetByPostAndIdAsync(
+        string postId,
+        string commentId,
+        CancellationToken ct = default)
+    {
+        return _dbContext.Comments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(comment => comment.PostId == postId && comment.CommentId == commentId, ct);
+    }
+
     public async Task AddAsync(Comment comment, CancellationToken ct = default)
     {
         // Avoid inserting an existing User when the navigation is attached.
         comment.User = null;
         await _dbContext.Comments.AddAsync(comment, ct);
         await _dbContext.SaveChangesAsync(ct);
+    }
+
+    public async Task<bool> IncrementLikeCountAsync(string commentId, int delta, CancellationToken ct = default)
+    {
+        var affectedRows = await _dbContext.Comments
+            .Where(entity => entity.CommentId == commentId)
+            .ExecuteUpdateAsync(
+                setter => setter.SetProperty(entity => entity.LikeCount, entity => entity.LikeCount + delta),
+                ct);
+
+        return affectedRows > 0;
     }
 
     public async Task<bool> DeleteAsync(string postId, string commentId, CancellationToken ct = default)

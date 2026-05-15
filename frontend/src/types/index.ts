@@ -10,6 +10,7 @@ export interface AuthUser {
   email: string;
   firstName?: string | null;
   lastName?: string | null;
+  profilePicture?: string | null;
   bio?: string | null;
 }
 
@@ -93,7 +94,9 @@ export interface Comment {
   firstName?: string | null;
   lastName?: string | null;
   content: string;
+  imageUrl?: string | null;
   likeCount: number;
+  isLiked?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -102,6 +105,8 @@ export interface Like {
   likeId: string;
   userId: string;
   postId?: string | null;
+  commentId?: string | null;
+  storyId?: string | null;
   createdAt: string;
 }
 

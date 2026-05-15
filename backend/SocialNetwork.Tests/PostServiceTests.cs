@@ -205,14 +205,20 @@ public class PostsServiceTests
 
      [Fact]
       public async Task CreateCommentAsync_ShouldFail_WhenUserContextMissing() {
-        var result = await _postsService.CreateCommentAsync("", "post1", new CommentCreateRequest());
+        var result = await _postsService.CreateCommentAsync(
+            "",
+            "post1",
+            new CommentCreateRequest { Content = "Hello" });
         Assert.Equal(ServiceErrorType.Unauthorized, result.ErrorType);
     }
 
     [Fact]
      public async Task CreateCommentAsync_ShouldFail_WhenPostNotFound() {
         _postRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((Post?)null);
-        var result = await _postsService.CreateCommentAsync("user1", "post1", new CommentCreateRequest());
+        var result = await _postsService.CreateCommentAsync(
+            "user1",
+            "post1",
+            new CommentCreateRequest { Content = "Hello" });
         Assert.Equal(ServiceErrorType.NotFound, result.ErrorType);
     }
 

@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import type { ApiResponse, AuthTokenResponse } from '../types';
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5245/api';
@@ -99,7 +99,7 @@ const refreshAccessToken = async () => {
 type RetryableRequestConfig = AxiosRequestConfig & { _retry?: boolean };
 
 // Interceptor to automatically inject token into header (Requirement F2)
-api.interceptors.request.use(async (config: AxiosRequestConfig) => {
+api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   if (isAuthEndpoint(config.url)) {
     return config;
   }

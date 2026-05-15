@@ -21,7 +21,8 @@ export interface PostUpdateRequest {
 }
 
 export interface CommentCreateRequest {
-  content: string;
+  content?: string | null;
+  imageUrl?: string | null;
 }
 
 export interface PostReportCreateRequest {
@@ -70,6 +71,21 @@ export const getPostComments = async (postId: string, pageNumber = 1, pageSize =
 
 export const createComment = async (postId: string, payload: CommentCreateRequest) => {
   const response = await api.post<ApiResponse<Comment>>(`/posts/${postId}/comments`, payload);
+  return unwrapApiResponse(response.data);
+};
+
+export const likeComment = async (postId: string, commentId: string) => {
+  const response = await api.post<ApiResponse<Like>>(
+    `/posts/${postId}/comments/${commentId}/likes`,
+    {}
+  );
+  return unwrapApiResponse(response.data);
+};
+
+export const unlikeComment = async (postId: string, commentId: string) => {
+  const response = await api.delete<ApiResponse<{ message: string }>>(
+    `/posts/${postId}/comments/${commentId}/likes`
+  );
   return unwrapApiResponse(response.data);
 };
 

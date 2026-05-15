@@ -200,6 +200,61 @@ public class PostsController : ApiControllerBase
         return OkResponse(new { message = result.Data });
     }
 
+    /// <summary>Like a comment on a post.</summary>
+    [HttpPost("{postId}/comments/{commentId}/likes")]
+    [ProducesResponseType(typeof(ApiResponse<LikeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<LikeResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> LikeComment(string postId, string commentId, [FromBody] LikeCreateRequest request)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        request.UserId = currentUserId;
+
+        var result = await _postsService.LikeCommentAsync(currentUserId, postId, commentId, request, HttpContext.RequestAborted);
+        if (!result.Success)
+        {
+            return FromServiceResult(result);
+        }
+
+        if (result.Data is null)
+        {
+            return BadRequestResponse("Unable to process like.");
+        }
+
+        if (result.Data.IsCreated)
+        {
+            return CreatedResponse(result.Data.Like);
+        }
+
+        return OkResponse(result.Data.Like);
+    }
+
+    /// <summary>Unlike a comment on a post.</summary>
+    [HttpDelete("{postId}/comments/{commentId}/likes")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UnlikeComment(string postId, string commentId)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return UnauthorizedResponse("User context is missing.");
+        }
+
+        var result = await _postsService.UnlikeCommentAsync(currentUserId, postId, commentId, HttpContext.RequestAborted);
+        if (!result.Success)
+        {
+            return FromServiceResult(result);
+        }
+
+        return OkResponse(new { message = result.Data });
+    }
+
     /// <summary>Like a post.</summary>
     [HttpPost("{postId}/likes")]
     [ProducesResponseType(typeof(ApiResponse<LikeResponse>), StatusCodes.Status200OK)]

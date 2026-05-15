@@ -87,6 +87,7 @@ public class AuthController : ApiControllerBase
             Email = user.Email ?? string.Empty,
             FirstName = user.FirstName,
             LastName = user.LastName,
+            ProfilePicture = user.ProfilePicture,
             Bio = user.Bio
         };
 
@@ -205,6 +206,7 @@ public class AuthController : ApiControllerBase
             Email = user.Email ?? string.Empty,
             FirstName = user.FirstName,
             LastName = user.LastName,
+            ProfilePicture = user.ProfilePicture,
             Bio = user.Bio
         };
     }

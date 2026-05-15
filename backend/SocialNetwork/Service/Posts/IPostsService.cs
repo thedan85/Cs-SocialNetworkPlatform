@@ -44,6 +44,19 @@ public interface IPostsService
         CancellationToken ct = default);
     Task<ServiceResult<string>> DeleteCommentAsync(string postId, string commentId, CancellationToken ct = default);
 
+    Task<ServiceResult<LikeCommentResult>> LikeCommentAsync(
+        string actorUserId,
+        string postId,
+        string commentId,
+        LikeCreateRequest request,
+        CancellationToken ct = default);
+
+    Task<ServiceResult<string>> UnlikeCommentAsync(
+        string actorUserId,
+        string postId,
+        string commentId,
+        CancellationToken ct = default);
+
     Task<ServiceResult<LikePostResult>> LikePostAsync(
         string actorUserId,
         string postId,

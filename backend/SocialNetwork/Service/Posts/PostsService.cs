@@ -320,8 +320,17 @@ public class PostsService : IPostsService
 
         var comments = await _commentRepository.GetByPostIdAsync(postId, pageNumber, pageSize, ct);
 
+        var commentIds = comments.Select(comment => comment.CommentId).ToList();
+        var likedCommentIds = await _likeRepository.GetLikedCommentIdsAsync(actorUserId, commentIds, ct);
+        var likedCommentIdSet = new HashSet<string>(likedCommentIds, StringComparer.OrdinalIgnoreCase);
+
         var responses = comments
-            .Select(comment => comment.ToCommentResponse())
+            .Select(comment =>
+            {
+                var response = comment.ToCommentResponse();
+                response.IsLiked = likedCommentIdSet.Contains(comment.CommentId);
+                return response;
+            })
             .ToList();
 
         return ServiceResult<IReadOnlyList<CommentResponse>>.Ok(responses);
@@ -336,6 +345,15 @@ public class PostsService : IPostsService
         if (string.IsNullOrWhiteSpace(actorUserId))
         {
             return ServiceResult<CommentResponse>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
+        var trimmedContent = request.Content?.Trim() ?? string.Empty;
+        var trimmedImageUrl = request.ImageUrl?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedContent) && string.IsNullOrWhiteSpace(trimmedImageUrl))
+        {
+            return ServiceResult<CommentResponse>.Fail(
+                ServiceErrorType.Validation,
+                "Comment content or image is required.");
         }
 
         var post = await _postRepository.GetByIdAsync(postId, ct);
@@ -364,12 +382,20 @@ public class PostsService : IPostsService
         {
             PostId = postId,
             UserId = actorUserId,
-            Content = request.Content,
+            Content = trimmedContent,
+            ImageUrl = string.IsNullOrWhiteSpace(trimmedImageUrl) ? null : trimmedImageUrl,
             CreatedAt = now,
             UpdatedAt = now
         };
 
         await _commentRepository.AddAsync(comment, ct);
+
+        await NotifyPostOwnerAsync(
+            user,
+            post,
+            "PostCommented",
+            NotificationContentHelper.BuildPostCommentedContent(BuildDisplayName(user)),
+            ct);
 
         var response = new CommentResponse
         {
@@ -380,7 +406,9 @@ public class PostsService : IPostsService
             FirstName = user.FirstName,
             LastName = user.LastName,
             Content = comment.Content,
+            ImageUrl = comment.ImageUrl,
             LikeCount = comment.LikeCount,
+            IsLiked = false,
             CreatedAt = comment.CreatedAt,
             UpdatedAt = comment.UpdatedAt
         };
@@ -403,6 +431,163 @@ public class PostsService : IPostsService
         return ServiceResult<string>.Ok("Comment deleted.");
     }
 
+    public async Task<ServiceResult<LikeCommentResult>> LikeCommentAsync(
+        string actorUserId,
+        string postId,
+        string commentId,
+        LikeCreateRequest request,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<LikeCommentResult>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
+        var actor = await _userRepository.GetByIdAsync(actorUserId, ct);
+        if (actor is null)
+        {
+            return ServiceResult<LikeCommentResult>.Fail(ServiceErrorType.NotFound, "User not found.");
+        }
+
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(ct);
+
+        try
+        {
+            var post = await _postRepository.GetByIdAsync(postId, ct);
+            if (post is null)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<LikeCommentResult>.Fail(ServiceErrorType.NotFound, "Post not found.");
+            }
+
+            var canView = await IsPostVisibleAsync(post, actorUserId, false, ct);
+            if (!canView)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<LikeCommentResult>.Fail(
+                    ServiceErrorType.Unauthorized,
+                    "You are not allowed to like this comment.");
+            }
+
+            var comment = await _commentRepository.GetByPostAndIdAsync(postId, commentId, ct);
+            if (comment is null)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<LikeCommentResult>.Fail(ServiceErrorType.NotFound, "Comment not found.");
+            }
+
+            var existingLike = await _likeRepository.GetByCommentAndUserAsync(commentId, actorUserId, ct);
+            if (existingLike is not null)
+            {
+                await transaction.RollbackAsync(ct);
+
+                return ServiceResult<LikeCommentResult>.Ok(new LikeCommentResult
+                {
+                    Like = existingLike.ToLikeResponse(),
+                    IsCreated = false
+                });
+            }
+
+            var now = DateTime.UtcNow;
+            var like = new Like
+            {
+                CommentId = commentId,
+                UserId = actorUserId,
+                CreatedAt = now
+            };
+
+            await _likeRepository.AddAsync(like, ct);
+
+            var updated = await _commentRepository.IncrementLikeCountAsync(commentId, 1, ct);
+            if (!updated)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<LikeCommentResult>.Fail(ServiceErrorType.NotFound, "Comment not found.");
+            }
+
+            await transaction.CommitAsync(ct);
+
+            return ServiceResult<LikeCommentResult>.Ok(new LikeCommentResult
+            {
+                Like = like.ToLikeResponse(),
+                IsCreated = true
+            });
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
+    }
+
+    public async Task<ServiceResult<string>> UnlikeCommentAsync(
+        string actorUserId,
+        string postId,
+        string commentId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
+        }
+
+        var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
+        if (!userExists)
+        {
+            return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "User not found.");
+        }
+
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(ct);
+
+        try
+        {
+            var post = await _postRepository.GetByIdAsync(postId, ct);
+            if (post is null)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Post not found.");
+            }
+
+            var canView = await IsPostVisibleAsync(post, actorUserId, false, ct);
+            if (!canView)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<string>.Fail(
+                    ServiceErrorType.Unauthorized,
+                    "You are not allowed to unlike this comment.");
+            }
+
+            var comment = await _commentRepository.GetByPostAndIdAsync(postId, commentId, ct);
+            if (comment is null)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Comment not found.");
+            }
+
+            var deleted = await _likeRepository.DeleteByCommentAndUserAsync(commentId, actorUserId, ct);
+            if (!deleted)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<string>.Ok("Like removed.");
+            }
+
+            var updated = await _commentRepository.IncrementLikeCountAsync(commentId, -1, ct);
+            if (!updated)
+            {
+                await transaction.RollbackAsync(ct);
+                return ServiceResult<string>.Fail(ServiceErrorType.NotFound, "Comment not found.");
+            }
+
+            await transaction.CommitAsync(ct);
+            return ServiceResult<string>.Ok("Like removed.");
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
+    }
+
     public async Task<ServiceResult<LikePostResult>> LikePostAsync(
         string actorUserId,
         string postId,
@@ -414,11 +599,15 @@ public class PostsService : IPostsService
             return ServiceResult<LikePostResult>.Fail(ServiceErrorType.Unauthorized, "User context is missing.");
         }
 
-        var userExists = await _userRepository.ExistsByIdAsync(actorUserId, ct);
-        if (!userExists)
+        var actor = await _userRepository.GetByIdAsync(actorUserId, ct);
+        if (actor is null)
         {
             return ServiceResult<LikePostResult>.Fail(ServiceErrorType.NotFound, "User not found.");
         }
+
+        var shouldNotifyOwner = false;
+        Post? likedPost = null;
+        LikePostResult? createdResult = null;
 
         await using var transaction = await _unitOfWork.BeginTransactionAsync(ct);
 
@@ -474,17 +663,36 @@ public class PostsService : IPostsService
 
             await transaction.CommitAsync(ct);
 
-            return ServiceResult<LikePostResult>.Ok(new LikePostResult
+            likedPost = post;
+            shouldNotifyOwner = !string.Equals(post.UserId, actorUserId, StringComparison.OrdinalIgnoreCase);
+            createdResult = new LikePostResult
             {
                 Like = like.ToLikeResponse(),
                 IsCreated = true
-            });
+            };
         }
         catch
         {
             await transaction.RollbackAsync(ct);
             throw;
         }
+
+        if (createdResult is null)
+        {
+            return ServiceResult<LikePostResult>.Fail(ServiceErrorType.Validation, "Unable to process like.");
+        }
+
+        if (shouldNotifyOwner && likedPost is not null)
+        {
+            await NotifyPostOwnerAsync(
+                actor,
+                likedPost,
+                "PostLiked",
+                NotificationContentHelper.BuildPostLikedContent(BuildDisplayName(actor)),
+                ct);
+        }
+
+        return ServiceResult<LikePostResult>.Ok(createdResult);
     }
 
     public async Task<ServiceResult<SharePostResult>> SharePostAsync(
@@ -577,6 +785,12 @@ public class PostsService : IPostsService
 
             await _postShareRepository.AddAsync(share, ct);
             await NotifyFriendsOfShareAsync(sharer, post, ct);
+            await NotifyPostOwnerAsync(
+                sharer,
+                post,
+                "PostShared",
+                NotificationContentHelper.BuildPostSharedOwnerContent(BuildDisplayName(sharer)),
+                ct);
 
             await transaction.CommitAsync(ct);
 
@@ -880,6 +1094,35 @@ public class PostsService : IPostsService
                 .Group(NotificationsHub.GroupName(friendId))
                 .SendAsync("notification:created", notificationResponse, ct);
         }
+    }
+
+    private async Task NotifyPostOwnerAsync(
+        User actor,
+        Post post,
+        string type,
+        string content,
+        CancellationToken ct)
+    {
+        if (string.Equals(post.UserId, actor.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var notification = new Notification
+        {
+            RecipientUserId = post.UserId,
+            SenderUserId = actor.Id,
+            Type = type,
+            Content = content,
+            CreatedAt = DateTime.UtcNow,
+            IsRead = false
+        };
+
+        await _notificationRepository.AddAsync(notification, ct);
+        var notificationResponse = notification.ToNotificationResponse();
+        await _notificationsHub.Clients
+            .Group(NotificationsHub.GroupName(notification.RecipientUserId))
+            .SendAsync("notification:created", notificationResponse, ct);
     }
 
     private static string BuildDisplayName(User? user)

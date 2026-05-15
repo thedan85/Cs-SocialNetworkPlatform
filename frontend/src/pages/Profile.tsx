@@ -46,6 +46,11 @@ const Profile = () => {
   const previewSrc = preview ? resolveImageUrl(preview) : null;
 
   useEffect(() => {
+    if (previewIsLocal) return;
+    setPreview(user?.profilePicture ?? null);
+  }, [previewIsLocal, user?.profilePicture]);
+
+  useEffect(() => {
     return () => {
       if (previewIsLocal && preview) {
         URL.revokeObjectURL(preview);

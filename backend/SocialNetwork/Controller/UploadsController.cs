@@ -19,9 +19,10 @@ public class UploadsController : ApiControllerBase
 
     /// <summary>Upload an image and return a public URL.</summary>
     [HttpPost("images")]
+    [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ApiResponse<UploadResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> UploadImage([FromForm] IFormFile file)
+    public async Task<IActionResult> UploadImage(IFormFile file)
     {
         if (file is null || file.Length == 0)
         {

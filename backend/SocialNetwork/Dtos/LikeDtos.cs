@@ -14,5 +14,7 @@ public class LikeResponse
     public string LikeId { get; set; } = string.Empty;
     public string UserId { get; set; } = string.Empty;
     public string? PostId { get; set; }
+    public string? CommentId { get; set; }
+    public string? StoryId { get; set; }
     public DateTime CreatedAt { get; set; }
 }

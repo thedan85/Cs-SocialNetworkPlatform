@@ -21,4 +21,19 @@ public static class NotificationContentHelper
 
         return $"{sharerUserName} shared {postAuthorName}'s post.";
     }
+
+    public static string BuildPostSharedOwnerContent(string sharerUserName)
+    {
+        return $"{sharerUserName} shared your post.";
+    }
+
+    public static string BuildPostLikedContent(string likerUserName)
+    {
+        return $"{likerUserName} liked your post.";
+    }
+
+    public static string BuildPostCommentedContent(string commenterUserName)
+    {
+        return $"{commenterUserName} commented on your post.";
+    }
 }
